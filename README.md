@@ -21,8 +21,14 @@ K.AI ist ein vollständig autonomer KI-Agent, der auf einem lokalen Windows-Host
 - **Secrets Store** — verschlüsselte Credential-Speicherung, niemals im Klartext im Code
 - **Workspace-RAG** — Code-Index des lokalen Projekts für gezielte Codebase-Suche
 
+### Sprache & Medien
+- **STT (Speech-to-Text)** — Sprachnachrichten in Telegram/Discord werden automatisch via [faster-Whisper](https://github.com/SYSTRAN/faster-whisper) transkribiert und als Text-Aufgabe verarbeitet
+- **TTS (Text-to-Speech)** — Antworten können als Sprachausgabe über [edge-tts](https://github.com/rany2/edge-tts) zurückgesendet werden
+- **Vision / Bildanalyse** — Bilder die per Telegram/Discord gesendet werden, werden direkt vom LLM analysiert (sofern der gewählte Provider Vision unterstützt, z.B. Gemini, GPT-4o)
+- **Datei-Handling** — der Agent empfängt Dateien jeglicher Art (PDF, CSV, ZIP, Bilder, Dokumente), verarbeitet sie und kann Dateien als Antwort zurückschicken (`send_messenger_file`)
+
 ### Messenger-Integration
-- **Telegram** — vollständiger Bot-Support inkl. Datei-Upload, Datei-Empfang, Inline-Status-Updates während der Ausführung
+- **Telegram** — vollständiger Bot-Support inkl. Datei-Upload/-Empfang, Sprach­nachrichten, Bilder, Inline-Status-Updates während der Ausführung
 - **Discord** — Bot-Integration mit identischem Feature-Umfang
 - **WebUI** — lokales Web-Interface auf Port 8765 mit Live-Output, Konfiguration und Job-Simulation
 
