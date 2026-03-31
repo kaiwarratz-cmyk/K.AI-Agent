@@ -219,7 +219,7 @@
     "discord": {
       "enabled": true,
       "token": "YOUR_TOKEN_HERE",
-      "channel_id": "1004487675501350932/1004493603764179036",
+      "channel_id": "",
       "require_prefix": true,
       "command_prefix": "/Lucy",
       "gateway_enabled": true,
