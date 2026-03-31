@@ -1,5 +1,7 @@
 # K.AI — Autonomer KI-Agent
 
+> ⚠️ **Dieses Projekt befindet sich aktiv in Entwicklung.** Features, APIs und Konfigurationsformate können sich jederzeit ändern. Nicht für den Produktionseinsatz geeignet.
+
 K.AI ist ein vollständig autonomer KI-Agent, der auf einem lokalen Windows-Host läuft und über Telegram, Discord oder eine WebUI gesteuert werden kann. Er kombiniert einen leistungsfähigen ReAct-Loop mit persistentem Langzeitgedächtnis, nativem Tool-Calling und einem erweiterbaren Skill-System — konzipiert als persönlicher Assistent mit echten Ausführungsrechten auf dem Host.
 
 ---
