@@ -1,0 +1,4 @@
+{
+  "token_secret": "brave_search_api_key",
+  "token_header": "X-Subscription-Token"
+}

@@ -1,0 +1,6 @@
+﻿{
+  "version": 1,
+  "model": "grok-2-latest",
+  "match": "exact",
+  "strategy_order": ["native_tools", "json_schema", "json_text"]
+}

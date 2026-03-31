@@ -1,0 +1,362 @@
+{
+  "security": {
+    "active_role": "admin",
+    "execution_mode": "unrestricted",
+    "secrets_db_path": "data\\secrets.db",
+    "workspace": ".",
+    "script_timeout": 300
+  },
+  "filesystem": {
+    "full_access": true,
+    "delete_to_trash": true
+  },
+  "llm": {
+    "active_provider_id": "ollama",
+    "active_model": "llama3.1",
+    "temperature": 0.0,
+    "retry_policy": {
+      "defaults": {
+        "max_attempts": 2,
+        "base_delay_seconds": 0.5,
+        "backoff_factor": 2.0,
+        "max_delay_seconds": 4.0,
+        "jitter_ratio": 0.2,
+        "retry_on_status": [
+          408,
+          429,
+          500,
+          502,
+          503,
+          504
+        ],
+        "retry_on_network_errors": true
+      },
+      "channels": {
+        "chat": {
+          "max_attempts": 2
+        },
+        "json": {
+          "max_attempts": 2
+        },
+        "stream": {
+          "max_attempts": 1,
+          "max_delay_seconds": 3.0
+        }
+      },
+      "providers": {}
+    },
+    "fallback_provider_ids": {}
+  },
+  "providers": {
+    "openrouter": {
+      "type": "openai_compatible",
+      "api_key": "YOUR_API_KEY_HERE",
+      "base_url": "https://openrouter.ai/api/v1",
+      "models": [
+        "openai/gpt-4o-mini",
+        "google/gemini-2.5-flash",
+        "anthropic/claude-3.5-sonnet"
+      ],
+      "default_model": "openai/gpt-4o-mini"
+    },
+    "together": {
+      "type": "openai_compatible",
+      "api_key": "YOUR_API_KEY_HERE",
+      "base_url": "https://api.together.xyz/v1",
+      "models": [
+        "meta-llama/Llama-3.1-70B-Instruct-Turbo",
+        "meta-llama/Llama-3.1-8B-Instruct-Turbo",
+        "mistralai/Mixtral-8x7B-Instruct-v0.1"
+      ],
+      "default_model": "meta-llama/Llama-3.1-70B-Instruct-Turbo"
+    },
+    "fireworks": {
+      "type": "openai_compatible",
+      "api_key": "YOUR_API_KEY_HERE",
+      "base_url": "https://api.fireworks.ai/inference/v1",
+      "models": [
+        "accounts/fireworks/models/llama-v3p1-70b-instruct",
+        "accounts/fireworks/models/llama-v3p1-8b-instruct"
+      ],
+      "default_model": "accounts/fireworks/models/llama-v3p1-70b-instruct"
+    },
+    "gemini": {
+      "type": "gemini",
+      "api_key": "YOUR_API_KEY_HERE",
+      "base_url": "https://generativelanguage.googleapis.com",
+      "models": [
+        "gemini-2.5-pro",
+        "gemini-2.5-flash",
+        "gemini-2.0-pro-exp-02-05",
+        "gemini-2.0-flash",
+        "gemini-1.5-pro",
+        "gemini-1.5-flash"
+      ],
+      "default_model": "gemini-2.5-flash"
+    },
+    "openai": {
+      "type": "openai_compatible",
+      "api_key": "YOUR_API_KEY_HERE",
+      "base_url": "https://api.openai.com/v1",
+      "models": [
+        "gpt-4o",
+        "gpt-4o-mini",
+        "gpt-4.1",
+        "gpt-4.1-mini",
+        "gpt-5",
+        "gpt-5-mini"
+      ],
+      "default_model": "gpt-4o"
+    },
+    "mistral": {
+      "type": "openai_compatible",
+      "api_key": "YOUR_API_KEY_HERE",
+      "base_url": "https://api.mistral.ai/v1",
+      "models": [
+        "mistral-large-latest",
+        "mistral-small-latest"
+      ],
+      "default_model": "mistral-large-latest"
+    },
+    "claude": {
+      "type": "anthropic",
+      "api_key": "YOUR_API_KEY_HERE",
+      "base_url": "https://api.anthropic.com",
+      "models": [
+        "claude-3-5-sonnet-latest",
+        "claude-3-7-sonnet-latest",
+        "claude-3-5-haiku-latest"
+      ],
+      "default_model": "claude-3-5-sonnet-latest"
+    },
+    "cohere": {
+      "type": "openai_compatible",
+      "api_key": "YOUR_API_KEY_HERE",
+      "base_url": "https://api.cohere.com/compatibility/v1",
+      "models": [
+        "command-r-plus",
+        "command-r"
+      ],
+      "default_model": "command-r-plus"
+    },
+    "ollama": {
+      "type": "openai_compatible",
+      "api_key": "YOUR_API_KEY_HERE",
+      "base_url": "http://127.0.0.1:11434/v1",
+      "models": [
+        "llama3.1",
+        "qwen2.5-coder:14b",
+        "deepseek-v3.1:671b-cloud",
+        "qwen3-coder:30b"
+      ],
+      "default_model": "qwen2.5-coder:14b",
+      "api_key_required": false,
+      "enabled": true
+    },
+    "deepseek": {
+      "type": "openai_compatible",
+      "api_key": "YOUR_API_KEY_HERE",
+      "base_url": "https://api.deepseek.com/v1",
+      "models": [
+        "deepseek-chat",
+        "deepseek-reasoner"
+      ],
+      "default_model": "deepseek-chat"
+    },
+    "perplexity": {
+      "type": "openai_compatible",
+      "api_key": "YOUR_API_KEY_HERE",
+      "base_url": "https://api.perplexity.ai",
+      "models": [
+        "sonar-pro",
+        "sonar"
+      ],
+      "default_model": "sonar-pro"
+    },
+    "azure_openai": {
+      "type": "openai_compatible",
+      "api_key": "YOUR_API_KEY_HERE",
+      "base_url": "https://YOUR_RESOURCE.openai.azure.com/openai/v1",
+      "models": [
+        "gpt-4o",
+        "gpt-4o-mini"
+      ],
+      "default_model": "gpt-4o"
+    },
+    "grok": {
+      "type": "xai",
+      "api_key": "YOUR_API_KEY_HERE",
+      "base_url": "https://api.x.ai/v1",
+      "models": [
+        "grok-2-latest",
+        "grok-2-vision-latest"
+      ],
+      "default_model": "grok-2-latest"
+    },
+    "groq": {
+      "type": "openai_compatible",
+      "api_key": "YOUR_API_KEY_HERE",
+      "base_url": "https://api.groq.com/openai/v1",
+      "models": [
+        "llama-3.1-70b-versatile",
+        "llama-3.1-8b-instant",
+        "mixtral-8x7b-32768"
+      ],
+      "default_model": "llama-3.1-70b-versatile"
+    }
+  },
+  "messenger": {
+    "reply_timeout_sec": 1200,
+    "telegram": {
+      "enabled": true,
+      "token": "YOUR_TOKEN_HERE",
+      "require_prefix": false,
+      "command_prefix": "/Agent",
+      "dm_policy": "open",
+      "group_policy": "open",
+      "allow_from": {}
+    },
+    "discord": {
+      "enabled": true,
+      "token": "YOUR_TOKEN_HERE",
+      "channel_id": "1004487675501350932/1004493603764179036",
+      "require_prefix": true,
+      "command_prefix": "/Lucy",
+      "gateway_enabled": true,
+      "dm_policy": "open",
+      "group_policy": "open",
+      "allow_from": "*"
+    },
+    "session_memory_enabled": true,
+    "session_memory_turns": 20
+  },
+  "tts": {
+    "enabled": true,
+    "voice": "Microsoft Server Speech Text to Speech Voice (de-DE, KatjaNeural)",
+    "mode": "reply_audio"
+  },
+  "workspace": "data\\workspace",
+  "memory": {
+    "db_path": "data\\chroma_db",
+    "use_global_conversation_fallback": false,
+    "episode_reflection_enabled": true,
+    "session_summary_enabled": true,
+    "session_summary_max_highlights": 18,
+    "session_summary_prompt_chars": 420,
+    "auto_llm_enabled": true,
+    "auto_llm_min_confidence": 0.82,
+    "auto_llm_max_chars": 220,
+    "cache_sbert_model": true
+  },
+  "routing": {
+    "llm_first": true,
+    "deterministic_fallback": false,
+    "heuristics_enabled": true,
+    "fallback_confidence_threshold": 0.62,
+    "llm_abstain_enabled": false,
+    "domain_min_confidence": 0.58,
+    "intent_thresholds": {
+      "filesystem": 0.64,
+      "script": 0.68,
+      "cron": 0.66,
+      "answer_and_save": 0.66,
+      "memory_query": 0.62,
+      "help": 0.68,
+      "clear_context": 0.68,
+      "chat": 0.5,
+      "unknown": 0.0
+    },
+    "llm_followup_rewrite_enabled": false,
+    "preempt_send_file": false
+  },
+  "self_improve": {
+    "enabled": true,
+    "scan_interval_sec": 300,
+    "deep_check_interval_sec": 1800,
+    "cooldown_sec": 900,
+    "auto_execute": false
+  },
+  "logging": {
+    "enabled": true,
+    "verbose": true,
+    "audit_log_path": "data\\logs\\audit.log"
+  },
+  "mcp": {
+    "timeout": 300,
+    "cache_ttl_sec": 300,
+    "local_server_enabled": true,
+    "servers": {},
+    "registry_sources": [
+      {
+        "base_url": "https://registry.modelcontextprotocol.io",
+        "name": "Official MCP Registry",
+        "id": "mcp_registry_official",
+        "type": "mcp_registry",
+        "enabled": true
+      },
+      {
+        "base_url": "https://api.github.com",
+        "name": "GitHub (topic:mcp-server)",
+        "id": "github",
+        "type": "github",
+        "enabled": true
+      }
+    ]
+  },
+  "web_server": {
+    "host": "127.0.0.1",
+    "port": 8000
+  },
+  "execution_plane": {
+    "enabled": true,
+    "host": "127.0.0.1",
+    "port": 8765,
+    "auth_token": "LSADghmGRnNvLf_3ff2k4r5RJNALseUm",
+    "auto_start": true,
+    "show_console": true,
+    "request_timeout_sec": 1800,
+    "fallback_to_local": true
+  },
+  "cli_core": {
+    "enabled": true,
+    "prefer_self_building": true,
+    "strict_minimal": false,
+    "allow_legacy_fallback": true,
+    "max_iterations": 50,
+    "max_step_timeout_sec": 1200,
+    "llm_timeout_sec": 120,
+    "use_smart_context": true,
+    "base_tools": [
+      "list_entries",
+      "read_file",
+      "write_file",
+      "script_exec",
+      "script_create",
+      "shell_command",
+      "send_messenger_file",
+      "mcp_refresh_tools",
+      "core_memory_update",
+      "gmail_send_email",
+      "gmail_send_email_advanced",
+      "gmail_list_messages",
+      "web_search",
+      "web_fetch",
+      "web_fetch_js",
+      "web_fetch_smart",
+      "web_links",
+      "web_download",
+      "web_public_data",
+      "web_fetch_text",
+      "web_get_text"
+    ]
+  },
+  "tools": {
+    "dynamic_timeout_sec": 300,
+    "max_output_chars": 10000,
+    "tool_output_cap_chars": 25000
+  },
+  "react": {
+    "use_loop": true,
+    "max_iterations": 100
+  }
+}

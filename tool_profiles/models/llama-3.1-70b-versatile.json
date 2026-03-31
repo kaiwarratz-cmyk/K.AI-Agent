@@ -1,0 +1,10 @@
+﻿{
+    "match":  "exact",
+    "model":  "llama-3.1-70b-versatile",
+    "version":  1,
+    "strategy_order":  [
+                           "native_tools",
+                           "json_schema",
+                           "json_text"
+                       ]
+}

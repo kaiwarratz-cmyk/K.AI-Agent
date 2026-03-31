@@ -1,0 +1,13 @@
+{
+  "token_secret": "gmail_access_token",
+  "refresh_token_secret": "gmail_refresh_token",
+  "client_id_secret": "gmail_client_id",
+  "client_secret_secret": "gmail_client_secret",
+  "auth_endpoint": "https://accounts.google.com/o/oauth2/v2/auth",
+  "token_endpoint": "https://oauth2.googleapis.com/token",
+  "oauth_scopes": [
+    "https://www.googleapis.com/auth/gmail.send",
+    "https://www.googleapis.com/auth/gmail.readonly"
+  ],
+  "user_id": "me"
+}

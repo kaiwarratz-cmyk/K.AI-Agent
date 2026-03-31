@@ -1,0 +1,92 @@
+{
+  "id": "brave_search",
+  "name": "Brave Web Search",
+  "description": "Hochwertige Websuche ueber die offizielle Brave Search API (stabiler als DuckDuckGo, eigener Index).",
+  "enabled_by_default": false,
+  "secrets_required": [
+    {
+      "alias": "brave_search_api_key",
+      "label": "Brave Search API Key",
+      "description": "API Key von https://brave.com/search/api/ — Free Tier: 2000 Anfragen/Monat kostenlos.",
+      "required": true
+    }
+  ],
+  "tools": [
+    {
+      "id": "brave_web_search",
+      "intent": "knowledge_or_web",
+      "kind": "brave_web_search",
+      "description": "Hochwertige Websuche via Brave Search API. Bevorzuge dieses Tool gegenueber web_search wenn verfuegbar.",
+      "required": {
+        "query": "str"
+      },
+      "optional": {
+        "count": "int",
+        "country": "str",
+        "search_lang": "str",
+        "freshness": "str"
+      }
+    },
+    {
+      "id": "brave_news_search",
+      "intent": "knowledge_or_web",
+      "kind": "brave_news_search",
+      "description": "Aktuelle Nachrichten-Suche via Brave Search API.",
+      "required": {
+        "query": "str"
+      },
+      "optional": {
+        "count": "int",
+        "country": "str",
+        "search_lang": "str",
+        "freshness": "str"
+      }
+    }
+  ],
+  "handlers": {
+    "brave_web_search": {
+      "type": "http_json",
+      "method": "GET",
+      "url": "https://api.search.brave.com/res/v1/web/search",
+      "token_secret": "brave_search_api_key",
+      "token_header": "X-Subscription-Token",
+      "headers": {
+        "Accept": "application/json",
+        "Accept-Encoding": "gzip"
+      },
+      "body": {
+        "q": "{{query}}",
+        "count": "{{count}}",
+        "country": "{{country}}",
+        "search_lang": "{{search_lang}}",
+        "freshness": "{{freshness}}"
+      },
+      "response_path": "web.results",
+      "result_fields": ["title", "url", "description"],
+      "result_limit": 5,
+      "timeout_sec": 15
+    },
+    "brave_news_search": {
+      "type": "http_json",
+      "method": "GET",
+      "url": "https://api.search.brave.com/res/v1/news/search",
+      "token_secret": "brave_search_api_key",
+      "token_header": "X-Subscription-Token",
+      "headers": {
+        "Accept": "application/json",
+        "Accept-Encoding": "gzip"
+      },
+      "body": {
+        "q": "{{query}}",
+        "count": "{{count}}",
+        "country": "{{country}}",
+        "search_lang": "{{search_lang}}",
+        "freshness": "{{freshness}}"
+      },
+      "response_path": "results",
+      "result_fields": ["title", "url", "description", "age"],
+      "result_limit": 5,
+      "timeout_sec": 15
+    }
+  }
+}

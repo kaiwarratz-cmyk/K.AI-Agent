@@ -1,0 +1,6 @@
+﻿{
+  "version": 1,
+  "model": "claude-3-7-sonnet",
+  "match": "prefix",
+  "strategy_order": ["native_tools", "json_schema", "json_text"]
+}

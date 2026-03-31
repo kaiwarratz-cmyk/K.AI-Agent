@@ -1,0 +1,111 @@
+{
+  "id": "gmail",
+  "name": "Gmail Integration",
+  "description": "Sendet und listet E-Mails ueber die Gmail API.",
+  "enabled_by_default": false,
+  "secrets_required": [
+    {
+      "alias": "gmail_access_token",
+      "label": "Gmail Access Token",
+      "description": "OAuth Access Token fuer Gmail API (Bearer).",
+      "required": true
+    },
+    {
+      "alias": "gmail_refresh_token",
+      "label": "Gmail Refresh Token",
+      "description": "Optional fuer automatisches Erneuern des Access Tokens.",
+      "required": false
+    },
+    {
+      "alias": "gmail_client_id",
+      "label": "Gmail OAuth Client ID",
+      "description": "Optional fuer Token-Refresh (OAuth Client ID).",
+      "required": false
+    },
+    {
+      "alias": "gmail_client_secret",
+      "label": "Gmail OAuth Client Secret",
+      "description": "Optional fuer Token-Refresh (OAuth Client Secret).",
+      "required": false
+    }
+  ],
+  "tools": [
+    {
+      "id": "gmail_send_email",
+      "intent": "knowledge_or_web",
+      "kind": "gmail_send_email",
+      "description": "Sende eine E-Mail via Gmail API.",
+      "required": {
+        "to": "str",
+        "subject": "str",
+        "body": "str"
+      },
+      "optional": {
+        "thread_id": "str"
+      }
+    },
+    {
+      "id": "gmail_send_email_advanced",
+      "intent": "knowledge_or_web",
+      "kind": "gmail_send_email_advanced",
+      "description": "Sende eine E-Mail via Gmail API mit optionalem HTML und Dateianhaengen/Bildern.",
+      "required": {
+        "to": "str",
+        "subject": "str"
+      },
+      "optional": {
+        "body": "str",
+        "html_body": "str",
+        "attachments": "list",
+        "cc": "str",
+        "bcc": "str",
+        "reply_to": "str",
+        "thread_id": "str"
+      }
+    },
+    {
+      "id": "gmail_list_messages",
+      "intent": "knowledge_or_web",
+      "kind": "gmail_list_messages",
+      "description": "Liste E-Mails via Gmail API. Gibt Betreff, Absender, Datum, ID und Snippet zurueck. Fuer den vollstaendigen E-Mail-Body nutze gmail_get_message mit der ID.",
+      "required": {},
+      "optional": {
+        "query": "str",
+        "max_results": "int",
+        "include_body": "bool"
+      }
+    },
+    {
+      "id": "gmail_get_message",
+      "intent": "knowledge_or_web",
+      "kind": "gmail_get_message",
+      "description": "Ruft den vollstaendigen Inhalt (Body) einer einzelnen E-Mail via Gmail API ab. Benoetigt die message_id aus gmail_list_messages.",
+      "required": {
+        "message_id": "str"
+      },
+      "optional": {}
+    }
+  ],
+  "handlers": {
+    "gmail_send_email": {
+      "type": "gmail_send",
+      "token_secret": "gmail_access_token",
+      "user_id": "me"
+    },
+    "gmail_send_email_advanced": {
+      "type": "gmail_send_advanced",
+      "token_secret": "gmail_access_token",
+      "user_id": "me"
+    },
+    "gmail_list_messages": {
+      "type": "gmail_list",
+      "token_secret": "gmail_access_token",
+      "user_id": "me"
+    },
+    "gmail_get_message": {
+      "type": "gmail_get",
+      "token_secret": "gmail_access_token",
+      "user_id": "me"
+    }
+  }
+}

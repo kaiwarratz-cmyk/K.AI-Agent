@@ -1,0 +1,1101 @@
+<!doctype html>
+<html lang="de">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>K.AI Agent - Modern Sidebar</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+
+<body>
+
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <div class="logo-icon">🤖</div>
+          <span>K.AI Agent</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Hauptfunktionen</div>
+          <div class="nav-item active" data-panel="chat">💬 Chat</div>
+          <div class="nav-item" data-panel="queue">📋 Queue</div>
+          <div class="nav-item" data-panel="tests">🧪 Tests</div>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">Monitoring</div>
+          <div class="nav-item" data-panel="logs">📊 Logs</div>
+          <div class="nav-item" data-panel="tools">🔧 Tools</div>
+          <div class="nav-item" data-panel="simulate">🧭 Simulator</div>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">Verwaltung</div>
+          <div class="nav-item" data-panel="llm">🧠 LLM Setup</div>
+          <div class="nav-item" data-panel="status">⚙️ Einstellungen</div>
+          <div class="nav-item" data-panel="config">📋 Config</div>
+          <div class="nav-item" data-panel="memory">🧠 Memory</div>
+          <div class="nav-item" data-panel="skills">✨ Skills</div>
+          <div class="nav-item" data-panel="mcp">🧩 MCP</div>
+          <div class="nav-item" data-panel="timeouts">⏳ Timeouts</div>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">Erweitert</div>
+          <div class="nav-item" data-panel="selfimprove">🚀 Self-Improve</div>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="main-wrapper">
+      <header class="main-header">
+        <h1 class="header-title" id="panelTitle">Chat</h1>
+      </header>
+
+      <div class="meta-strip" id="metaStrip"
+        style="margin: 0; padding: 8px 16px; font-size: 11px; border-bottom: 1px solid var(--line); background: var(--bg-2); text-align: center;">
+        <span id="metaInfo">Lade...</span>
+      </div>
+
+      <div class="main-content">
+        <div class="shell">
+          <section class="topbar">
+            <div class="top-head">
+              <div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <svg width="38" height="38" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"
+                    style="flex-shrink:0">
+                    <!-- Antenne -->
+                    <line x1="18" y1="5" x2="18" y2="9" stroke="#22a2b5" stroke-width="2" stroke-linecap="round" />
+                    <ellipse cx="18" cy="3.5" rx="3" ry="2.5" fill="#f59e0b" />
+                    <!-- Kopf -->
+                    <rect x="5" y="8" width="26" height="19" rx="4" fill="#0f6a8f" stroke="#22a2b5"
+                      stroke-width="1.5" />
+                    <!-- Augen -->
+                    <ellipse cx="12.5" cy="15" rx="3" ry="3" fill="#f9fcff" />
+                    <ellipse cx="12.5" cy="15" rx="1.5" ry="1.5" fill="#22a2b5" />
+                    <ellipse cx="23.5" cy="15" rx="3" ry="3" fill="#f9fcff" />
+                    <ellipse cx="23.5" cy="15" rx="1.5" ry="1.5" fill="#22a2b5" />
+                    <!-- Mund (3 Punkte) -->
+                    <rect x="10" y="22" width="3" height="2" rx="1" fill="#f59e0b" />
+                    <rect x="16.5" y="22" width="3" height="2" rx="1" fill="#f59e0b" />
+                    <rect x="23" y="22" width="3" height="2" rx="1" fill="#f59e0b" />
+                    <!-- Hals -->
+                    <line x1="18" y1="27" x2="18" y2="31" stroke="#22a2b5" stroke-width="2" stroke-linecap="round" />
+                    <!-- Schultern -->
+                    <line x1="8" y1="31" x2="28" y2="31" stroke="#22a2b5" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                  <h1>K.AI Agent</h1>
+                </div>
+                <div class="subtitle">Lokale Agent-Steuerung fuer LLM, Tools und Integrationen</div>
+              </div>
+            </div>
+            <div id="meta" class="muted meta-strip">Lade Einstellungen...</div>
+            <div class="tabs">
+              <button class="tab-btn active" data-tab="chat">Chat</button>
+              <button class="tab-btn" data-tab="status">Einstellungen</button>
+              <button class="tab-btn" data-tab="skills">Skills</button>
+              <button class="tab-btn" data-tab="tests">Tests</button>
+              <button class="tab-btn" data-tab="tools">Tool-Log</button>
+              <button class="tab-btn" data-tab="logs">Logs</button>
+              <button class="tab-btn" data-tab="queue">Request Queue</button>
+              <button class="tab-btn" data-tab="config">Konfigurations&uuml;bersicht</button>
+              <button class="tab-btn" data-tab="memory">Ged&auml;chtnis</button>
+              <button class="tab-btn" data-tab="selfimprove">Self-Improve</button>
+              <button class="tab-btn" data-tab="scripts">Skripte</button>
+              <button class="tab-btn" data-tab="mcp">MCP-Tools</button>
+              <button class="tab-btn" data-tab="simulate">Simulator</button>
+            </div>
+          </section>
+
+          <section id="panel-chat" class="panel active">
+            <div class="notice-banner">
+              Bei <strong>admin + unrestricted</strong> werden Ausfuehrungen ohne Rueckfrage gestartet.
+              Ged&auml;chtnis: <strong>Gedaechtnis anzeigen</strong> oder <strong>Gedaechtnis loeschen</strong>.
+            </div>
+            <div class="section-card">
+              <h3 class="section-title">Schnellaktionen</h3>
+              <div class="action-grid">
+                <button id="qaListFiles" class="secondary">Workspace-Dateien</button>
+                <button id="qaListDirs" class="secondary">Workspace-Ordner</button>
+                <button id="qaMemoryShow" class="secondary">/gedaechtnis anzeigen</button>
+                <button id="qaMemoryDelete" class="secondary">/gedaechtnis loeschen</button>
+                <button id="qaClearContext" class="secondary">/kontext loeschen</button>
+                <button id="qaCronJobs" class="secondary">/cron jobs</button>
+                <button id="qaConfigRefresh" class="secondary">Konfigurations&uuml;bersicht aktualisieren</button>
+              </div>
+            </div>
+            <div class="section-card">
+              <h3 class="section-title">Konversation</h3>
+              <div id="chatLog" class="list"></div>
+              <div class="composer">
+                <textarea id="prompt" rows="4" placeholder="Nachricht eingeben..."></textarea>
+                <button id="sendBtn">Senden</button>
+              </div>
+              <div class="composer-hint">Enter = senden, Shift+Enter = Zeilenumbruch</div>
+            </div>
+          </section>
+
+          <section id="panel-llm" class="panel">
+            <h2 class="panel-title">LLM Setup</h2>
+            <div class="section-card">
+              <h3 class="section-title">Aktive Konfiguration</h3>
+              <div class="muted" style="margin-bottom:8px;">
+                Waehle den Provider und das Modell aus.
+              </div>
+              <div class="row">
+                <div>
+                  <label>Provider</label>
+                  <select id="provider"></select>
+                </div>
+                <div>
+                  <label>Modell</label>
+                  <select id="model"></select>
+                </div>
+                <div>
+                  <label>Temperatur</label>
+                  <input id="llmTemp" type="number" min="0" max="2" step="0.1" placeholder="0.2">
+                </div>
+              </div>
+              <div class="row">
+                <button id="applyLlm">Modell setzen</button>
+                <button id="refreshLlmCatalog" class="secondary">Katalog aktualisieren</button>
+              </div>
+            </div>
+
+            <div class="section-card">
+              <h3 class="section-title">Ollama Support</h3>
+              <div class="row">
+                <div>
+                  <label>Aktiviert</label>
+                  <select id="ollamaEnabled">
+                    <option value="false">nein</option>
+                    <option value="true">ja</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Base URL</label>
+                  <input id="ollamaBaseUrl" type="text" placeholder="http://127.0.0.1:11434/v1">
+                </div>
+              </div>
+              <button id="applyOllama" class="secondary">Ollama speichern</button>
+            </div>
+
+            <div class="section-card">
+              <h3 class="section-title">Registrierte Provider & Modelle</h3>
+              <div id="llmList" class="list" style="height: 400px; overflow-y: auto;">
+                Lade Liste...
+              </div>
+            </div>
+
+            <div class="section-card">
+              <h3 class="section-title">Neuer Provider / Modell hinzufügen</h3>
+              <div style="padding: 12px; background: var(--bg); border-radius: 8px; margin-bottom: 10px;">
+                <h4 style="margin: 0 0 8px 0; font-size: 13px;">Provider anlegen</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                  <input type="text" id="newProviderId" placeholder="ID (z.B. openrouter)">
+                  <input type="text" id="newProviderName" placeholder="Anzeigename">
+                </div>
+                <input type="text" id="newProviderUrl" placeholder="Base URL (optional)" style="margin-top: 8px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+                  <input type="text" id="newProviderTokenKey" placeholder="Token Alias (z.B. MY_KEY)">
+                  <input type="password" id="newProviderToken" placeholder="API Token">
+                </div>
+                <button id="addProviderBtn" class="secondary" style="margin-top: 10px;">Provider speichern</button>
+              </div>
+
+              <div style="padding: 12px; background: var(--bg); border-radius: 8px;">
+                <h4 style="margin: 0 0 8px 0; font-size: 13px;">Modell hinzufügen</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                  <select id="addModelTargetProvider"></select>
+                  <input type="text" id="newModelName" placeholder="Modell ID (z.B. gpt-4o)">
+                </div>
+                <button id="addModelBtn" class="secondary" style="margin-top: 10px;">Modell speichern</button>
+              </div>
+            </div>
+          </section>
+
+          <section id="panel-status" class="panel">
+            <h2 class="panel-title">Einstellungen</h2>
+            <div class="section-card">
+              <h3 class="section-title">Sicherheit</h3>
+              <div class="muted" style="margin-bottom:8px;">
+                Diese Einstellungen steuern Berechtigungen und Script-Ausfuehrung.
+              </div>
+              <div class="row">
+                <div>
+                  <label>Rolle</label>
+                  <select id="role">
+                    <option value="user">user</option>
+                    <option value="admin">admin</option>
+                  </select>
+                  <div class="muted" style="font-size:11px;margin-top:4px;">`admin` erlaubt erweiterte Aktionen
+                    ausserhalb normaler User-Grenzen.</div>
+                </div>
+                <div>
+                  <label>Own Script Run</label>
+                  <select id="execMode">
+                    <option value="deny">Blockieren (deny)</option>
+                    <option value="unrestricted">Direkt ausfuehren (unrestricted)</option>
+                  </select>
+                  <div class="muted" style="font-size:11px;margin-top:4px;">Gilt fuer `script_exec`/eigene Scripts des
+                    Agents.</div>
+                </div>
+              </div>
+              <div class="muted" style="margin-top:8px;">
+                Hinweis zu Own Script Run: Bei <strong>deny</strong> werden Scripts blockiert, bei
+                <strong>unrestricted</strong> laufen sie direkt. Zeitlimits werden zentral unter <em>⏳ Timeouts</em> konfiguriert.
+              </div>
+              <button id="applySecurity">Sicherheit speichern</button>
+            </div>
+            <div class="section-card">
+              <h3 class="section-title">Execution-Plane</h3>
+              <div class="muted" style="margin-bottom:8px;">
+                Prozess fuer asynchrone Tool-Ausfuehrungen. Nach Konfigurationsaenderungen kann ein manueller Reload
+                sinnvoll sein.
+              </div>
+              <div class="row">
+                <div>
+                  <label>Execution-Plane Konsole</label>
+                  <select id="execShowConsole">
+                    <option value="false">show_console: false (versteckt)</option>
+                    <option value="true">show_console: true (eigene Konsole)</option>
+                  </select>
+                  <div class="muted" style="font-size:11px;margin-top:4px;">Steuert, ob die Execution-Plane mit
+                    sichtbarer Konsole gestartet wird.</div>
+                </div>
+                <div>
+                  <label>Status</label>
+                  <div id="execPlaneStatus" class="muted"
+                    style="min-height:38px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg-2);">
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <button id="applyExecutionPlane">Execution-Plane speichern</button>
+                <button id="reloadExecutionPlane" class="secondary">Execution-Plane manuell neu laden</button>
+              </div>
+            </div>
+            <div class="section-card">
+              <h3 class="section-title">Session</h3>
+              <div class="muted">Setzt nur die aktuelle WebUI-Unterhaltung zurueck (mit Sicherheitsabfrage).</div>
+              <button id="resetSessionUi" class="secondary">Session neu</button>
+            </div>
+            <div class="section-card">
+              <h3 class="section-title">Dateisystem</h3>
+              <div class="muted" style="margin-bottom:8px;">
+                Definiert den Standard-Arbeitsbereich und wie strikt Dateizugriffe behandelt werden.
+              </div>
+              <div class="row">
+                <div>
+                  <label>Arbeitsverzeichnis</label>
+                  <input id="workspaceInput" type="text" placeholder="data\\workspace">
+                  <div class="muted" style="font-size:11px;margin-top:4px;">Basis-Pfad fuer relative Dateioperationen.
+                  </div>
+                </div>
+                <div>
+                  <label>Dateisystem-Optionen</label>
+                  <div class="row">
+                    <select id="fullAccess">
+                      <option value="false">full_access: false</option>
+                      <option value="true">full_access: true</option>
+                    </select>
+                    <select id="deleteToTrash">
+                      <option value="true">delete_to_trash: true</option>
+                      <option value="false">delete_to_trash: false</option>
+                    </select>
+                  </div>
+                  <div class="muted" style="font-size:11px;margin-top:4px;">
+                    `full_access=true` lockert Scope-Grenzen; `delete_to_trash=true` loescht zuerst in den Papierkorb.
+                  </div>
+                </div>
+              </div>
+              <button id="applyFilesystem">Dateisystem speichern</button>
+            </div>
+            <div class="section-card">
+              <h3 class="section-title">Self-Improve</h3>
+              <div class="muted" style="margin-bottom:8px;">
+                Automatische Analyse von Fehlersignalen. Nur aktivieren, wenn Reports/Patches laufend erzeugt werden
+                sollen.
+              </div>
+              <div class="row">
+                <div>
+                  <label>Aktiv</label>
+                  <select id="siEnabled">
+                    <option value="true">enabled: true</option>
+                    <option value="false">enabled: false</option>
+                  </select>
+                  <div class="muted" style="font-size:11px;margin-top:4px;">Schaltet den gesamten Self-Improve-Worker
+                    ein/aus.</div>
+                </div>
+                <div>
+                  <label>Auto-Execute</label>
+                  <select id="siAutoExecute">
+                    <option value="false">auto_execute: false</option>
+                    <option value="true">auto_execute: true</option>
+                  </select>
+                  <div class="muted" style="font-size:11px;margin-top:4px;">Bei `true` werden vorgeschlagene Fixes
+                    automatisch ausgefuehrt.</div>
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label>Kleiner Scan Intervall (Sek.)</label>
+                  <input id="siScanInterval" type="number" min="30" max="3600" step="1" placeholder="300">
+                  <div class="muted" style="font-size:11px;margin-top:4px;">Leichter, haeufiger Check.</div>
+                </div>
+                <div>
+                  <label>Ausfuehrlicher Scan Intervall (Sek.)</label>
+                  <input id="siDeepInterval" type="number" min="120" max="86400" step="1" placeholder="1800">
+                  <div class="muted" style="font-size:11px;margin-top:4px;">Intensivere Analyse (teurer/langsamer).
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label>Cooldown (Sek.)</label>
+                  <input id="siCooldown" type="number" min="0" max="86400" step="1" placeholder="900">
+                  <div class="muted" style="font-size:11px;margin-top:4px;">Mindestabstand zwischen automatischen
+                    Improve-Runs.</div>
+                </div>
+                <div></div>
+              </div>
+              <button id="applySelfImprove">Self-Improve speichern</button>
+            </div>
+            <div class="section-card">
+              <h3 class="section-title">Audio (TTS/SST)</h3>
+              <div class="muted" style="margin-bottom:8px;">
+                Sprach-Ausgabe fuer Antworten. Bei `text_only` bleibt alles rein textbasiert.
+              </div>
+              <div class="row">
+                <div>
+                  <label>TTS Aktiv</label>
+                  <select id="audioEnabled">
+                    <option value="false">enabled: false</option>
+                    <option value="true">enabled: true</option>
+                  </select>
+                  <div class="muted" style="font-size:11px;margin-top:4px;">Globale Aktivierung fuer Sprachsynthese.
+                  </div>
+                </div>
+                <div>
+                  <label>Stimme</label>
+                  <select id="audioVoice"></select>
+                  <div class="muted" style="font-size:11px;margin-top:4px;">Verfuegbare Stimmen werden dynamisch
+                    geladen.</div>
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label>Modus</label>
+                  <select id="audioMode">
+                    <option value="reply_audio">reply_audio (Audio-Antwort)</option>
+                    <option value="text_only">text_only (Nur Text)</option>
+                  </select>
+                </div>
+                <div>
+                  <label>&nbsp;</label>
+                  <button id="refreshAudioVoices" class="secondary">Stimmen neu laden</button>
+                </div>
+              </div>
+              <button id="applyAudio">Audio-Einstellungen speichern</button>
+            </div>
+            <div class="section-card">
+              <h3 class="section-title">UI-Optionen (Quiet Mode)</h3>
+              <div class="muted" style="margin-bottom:8px;">
+                Steuert die Anzeige von Zwischenschritten im ReAct-Loop (Thinking/Actions).
+                Nützlich für Debugging oder um nur Endergebnisse zu sehen.
+              </div>
+              <div class="row">
+                <div>
+                  <label>Quiet Mode</label>
+                  <select id="quietMode">
+                    <option value="false">Aus (alle Nachrichten)</option>
+                    <option value="true">An (nur Ergebnisse)</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Thinking anzeigen</label>
+                  <select id="showThinking">
+                    <option value="false">Nein</option>
+                    <option value="true">Ja</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label>Actions anzeigen</label>
+                  <select id="showActions">
+                    <option value="false">Nein</option>
+                    <option value="true">Ja</option>
+                  </select>
+                </div>
+                <div></div>
+              </div>
+              <button id="applyUiOptions">UI-Optionen speichern</button>
+            </div>
+
+            <div class="section-card">
+              <h3 class="section-title">ReAct-Retry-Einstellungen</h3>
+              <div class="muted" style="margin-bottom:8px;">
+                Steuert das automatische Wiederholen bei fehlgeschlagenen Plänen.
+                Der Agent erstellt bei Fehlern alternative Pläne.
+              </div>
+              <div class="row">
+                <div>
+                  <label>Retry aktiviert</label>
+                  <select id="reactRetryEnabled">
+                    <option value="false">Nein</option>
+                    <option value="true" selected>Ja</option>
+                  </select>
+                  <div class="muted" style="font-size:11px;margin-top:4px;">Bei `Nein` wird nach einem Fehler nicht
+                    automatisch neu geplant.</div>
+                </div>
+                <div>
+                  <label>Maximale Versuche</label>
+                  <input type="number" id="reactMaxRetries" min="0" max="10" value="3"
+                    style="width:100%;padding:6px;border:1px solid var(--line);border-radius:6px;">
+                  <div class="muted" style="font-size:11px;margin-top:4px;">Hoeher = robuster, aber mehr
+                    Laufzeit/Kosten.</div>
+                </div>
+              </div>
+              <button id="applyReactRetryOptions">Retry-Einstellungen speichern</button>
+            </div>
+
+            <div class="section-card">
+              <h3 class="section-title">ReAct-Loop-Einstellungen</h3>
+              <div class="muted" style="margin-bottom:8px;">
+                Der Agent arbeitet Schritt-für-Schritt und sieht nach jedem Tool-Aufruf das Ergebnis.
+                Maximale Iterationen = Anzahl der Tool-Aufrufe pro Aufgabe (z.B. Web-Suche, Datei schreiben).
+                Höhere Werte erlauben komplexere Aufgaben, benötigen aber mehr Zeit.
+              </div>
+              <div class="row">
+                <div>
+                  <label>Loop-Modus aktiviert</label>
+                  <select id="reactUseLoop">
+                    <option value="false">Nein (alter Planer)</option>
+                    <option value="true" selected>Ja (neuer Loop)</option>
+                  </select>
+                  <div class="muted" style="font-size:11px;margin-top:4px;">Empfehlung: aktiv lassen, da besseres
+                    Tool-Feedback pro Schritt.</div>
+                </div>
+                <div>
+                  <label>Maximale Iterationen</label>
+                  <input type="number" id="reactMaxIterations" min="5" max="50" value="15"
+                    style="width:100%;padding:6px;border:1px solid var(--line);border-radius:6px;">
+                  <div class="muted" style="font-size:11px;margin-top:4px;">Obergrenze fuer Schritte pro Auftrag (inkl.
+                    Recovery-Versuche).</div>
+                </div>
+              </div>
+              <button id="applyReactLoopOptions">Loop-Einstellungen speichern</button>
+            </div>
+
+            <div class="section-card">
+              <h3 class="section-title">Cron-Management</h3>
+              <div class="muted" style="margin-bottom:8px;">
+                Ansicht und Verwaltung geplanter Jobs. Filter beeinflusst nur die Anzeige, nicht die Ausfuehrung.
+              </div>
+              <div class="row">
+                <div>
+                  <label>Anzeige</label>
+                  <select id="cronActiveOnly">
+                    <option value="false">alle Jobs</option>
+                    <option value="true">nur aktive Jobs</option>
+                  </select>
+                </div>
+                <div>
+                  <label>&nbsp;</label>
+                  <button id="refreshCronJobs" class="secondary">Cron-Jobs aktualisieren</button>
+                </div>
+              </div>
+              <div id="cronJobsList" class="list" style="max-height:260px; margin-top:8px;"></div>
+            </div>
+            <div class="section-card">
+              <h3 class="section-title">Secret-Store</h3>
+              <div class="muted" style="margin-bottom:8px;">
+                Sichere Alias-Werte (z. B. Tokens, Keys). Im UI werden Werte nicht im Klartext angezeigt.
+              </div>
+              <div class="row">
+                <div>
+                  <label>Alias</label>
+                  <input id="secretAlias" type="text" placeholder="z. B. telegram_cred">
+                </div>
+                <div>
+                  <label>Wert</label>
+                  <input id="secretValue" type="password" placeholder="Secret-Wert (wird nie angezeigt)">
+                </div>
+              </div>
+              <div class="action-grid">
+                <button id="saveSecretBtn">Secret speichern/aktualisieren</button>
+                <button id="deleteSecretBtn" class="ghost">Secret loeschen</button>
+                <button id="refreshSecretsBtn" class="secondary">Alias-Liste aktualisieren</button>
+              </div>
+              <div id="secretStatus" class="muted" style="margin-top:8px;"></div>
+              <div id="secretAliases" class="list" style="max-height:220px; margin-top:8px;"></div>
+            </div>
+          </section>
+
+          <section id="panel-skills" class="panel">
+            <h2 class="panel-title">Skills</h2>
+            <div class="section-card">
+              <h3 class="section-title">Skill-Management</h3>
+              <div class="row">
+                <div class="muted">Skills aus dem Ordner <code>skills/</code>. Nach Aktivierung stehen die Tools dem LLM
+                  fuer Toolcalls zur Verfuegung.</div>
+                <div>
+                  <button id="refreshSkills" class="secondary">Skills neu laden</button>
+                </div>
+              </div>
+              <div id="skillsList" class="list" style="max-height:520px; margin-top:8px;"></div>
+            </div>
+          </section>
+
+          <section id="panel-tests" class="panel">
+            <h2 class="panel-title">Tests</h2>
+            <div class="section-card">
+              <h3 class="section-title">Schnelltests</h3>
+              <div class="action-grid">
+                <button id="testLlm" class="secondary">LLM Live-Test</button>
+                <button id="testMessenger" class="secondary">Messenger-Test</button>
+                <button id="testSelfImproveQuick" class="secondary">Self-Improve: Klein</button>
+                <button id="testSelfImproveDeep" class="secondary">Self-Improve: Ausfuehrlich</button>
+                <button id="testSelfImproveDiagnose" class="secondary">Self-Improve: Diagnose-Skript</button>
+                <button id="testDoctor" class="secondary">System-Doctor</button>
+              </div>
+            </div>
+            <div class="section-card">
+              <h3 class="section-title">Direkte Ausgabe</h3>
+              <button id="clearTestOutput" class="ghost">Ausgabe leeren</button>
+              <div id="testOutput" class="list"></div>
+            </div>
+          </section>
+
+          <section id="panel-tools" class="panel">
+            <h2 class="panel-title">Werkzeugprotokoll</h2>
+            <div id="toolLog" class="list"></div>
+          </section>
+
+          <section id="panel-logs" class="panel">
+            <h2 class="panel-title">Audit-Logs</h2>
+            <div class="section-card">
+              <h3 class="section-title">Filter</h3>
+              <div class="row">
+                <div>
+                  <label>Limit</label>
+                  <select id="auditLimit">
+                    <option value="100">100</option>
+                    <option value="200" selected>200</option>
+                    <option value="500">500</option>
+                    <option value="1000">1000</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Stage (optional)</label>
+                  <input id="auditStage" type="text" placeholder="z. B. request, response, tool_exec">
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label>Trace ID (optional)</label>
+                  <input id="auditTraceId" type="text" placeholder="z. B. 8f2a4c1e...">
+                </div>
+                <div></div>
+              </div>
+              <div class="action-grid">
+                <button id="refreshAuditLog" class="secondary">Logs aktualisieren</button>
+                <button id="clearAuditLog" class="ghost">Audit-Log löschen</button>
+              </div>
+            </div>
+            <div class="section-card">
+              <h3 class="section-title">Ausgabe</h3>
+              <div id="auditMeta" class="muted"></div>
+              <div id="auditLog" class="list"></div>
+            </div>
+
+            <div class="section-card" style="margin-top:16px;">
+              <h3 class="section-title">Fehler-Log <span
+                  style="font-size:12px;font-weight:400;color:var(--muted);">(data/logs/errors.log)</span></h3>
+              <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
+                <button id="refreshErrorLog" class="secondary">↻ Aktualisieren</button>
+                <button id="clearErrorLog" class="ghost" style="color:#ef4444;">Fehler-Log löschen</button>
+                <span id="errorLogMeta" style="color:var(--muted);font-size:12px;"></span>
+              </div>
+              <div id="errorLogList" style="font-size:12px;max-height:320px;overflow-y:auto;"></div>
+            </div>
+          </section>
+
+          <section id="panel-config" class="panel">
+            <h2 class="panel-title">Konfigurations&uuml;bersicht</h2>
+            <button id="refreshConfig" class="secondary">Konfigurations&uuml;bersicht aktualisieren</button>
+            <div id="configView" class="cfg-grid"></div>
+            <details style="margin-top:10px;">
+              <summary>Rohes JSON</summary>
+              <div id="configRaw" class="raw"></div>
+            </details>
+          </section>
+
+          <section id="panel-memory" class="panel">
+            <h2 class="panel-title">Ged&auml;chtnis</h2>
+
+            <!-- Langzeit-Fakten (discovered_facts / mem_save_fact) -->
+            <div class="section-card" style="margin-bottom:20px;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+                <h3 class="section-title" style="margin:0;">📌 Langzeit-Fakten</h3>
+                <span id="factsCount" style="color:var(--muted);font-size:13px;"></span>
+                <button id="refreshFacts" class="secondary" style="padding:4px 10px;font-size:12px;">&#8635; Aktualisieren</button>
+                <span id="factsStatus" style="font-size:13px;margin-left:auto;"></span>
+              </div>
+              <div style="overflow-x:auto;">
+                <table id="factsTable" style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;">
+                  <colgroup>
+                    <col style="width:22%;">
+                    <col style="width:52%;">
+                    <col style="width:16%;">
+                    <col style="width:10%;">
+                  </colgroup>
+                  <thead>
+                    <tr style="background:var(--bg-2,#f5f5f5);text-align:left;">
+                      <th style="padding:7px 10px;border-bottom:1px solid var(--line);">Key</th>
+                      <th style="padding:7px 10px;border-bottom:1px solid var(--line);">Wert</th>
+                      <th style="padding:7px 10px;border-bottom:1px solid var(--line);">Gespeichert</th>
+                      <th style="padding:7px 10px;border-bottom:1px solid var(--line);"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="factsTableBody"></tbody>
+                </table>
+              </div>
+              <div id="factsEmpty" style="display:none;color:var(--muted);font-size:13px;padding:10px 4px;">Noch keine Fakten gespeichert.</div>
+            </div>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+              <select id="memKindFilter"
+                style="padding:7px 10px;border-radius:8px;border:1px solid var(--line);font:inherit;background:var(--panel-2);">
+                <option value="">Alle Kinds</option>
+                <option value="conversation">conversation</option>
+                <option value="important">important</option>
+                <option value="profile">profile</option>
+                <option value="workflow_success">workflow_success</option>
+                <option value="script">script</option>
+                <option value="lesson">lesson</option>
+                <option value="session_summary">session_summary</option>
+                <option value="last_save">last_save</option>
+                <option value="web">web</option>
+                <option value="episode">episode</option>
+              </select>
+              <button id="refreshMemory" class="secondary">&#8635; Aktualisieren</button>
+              <button id="memDeleteAllBtn" class="secondary" style="color:#ef4444;border-color:#ef4444;">&#128465; Alle
+                l&ouml;schen</button>
+              <span id="memCount" style="color:var(--muted);font-size:13px;"></span>
+              <span id="memStatus" style="font-size:13px;"></span>
+            </div>
+            <div style="overflow-x:auto;">
+              <table id="memTable" style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead>
+                  <tr style="background:var(--bg-2);text-align:left;">
+                    <th style="padding:7px 10px;border-bottom:1px solid var(--line);">Kind</th>
+                    <th style="padding:7px 10px;border-bottom:1px solid var(--line);">Key</th>
+                    <th style="padding:7px 10px;border-bottom:1px solid var(--line);">Conf</th>
+                    <th style="padding:7px 10px;border-bottom:1px solid var(--line);">Inhalt</th>
+                    <th style="padding:7px 10px;border-bottom:1px solid var(--line);">Datum</th>
+                    <th style="padding:7px 10px;border-bottom:1px solid var(--line);">Aktion</th>
+                  </tr>
+                </thead>
+                <tbody id="memTableBody"></tbody>
+              </table>
+            </div>
+            <details style="margin-top:20px; border: 1px solid var(--line); border-radius: 8px; padding: 10px;">
+              <summary style="cursor:pointer;font-weight:600;color:var(--accent); outline: none;">🔍 Trace-Suche (Einzel-Job Analyse)</summary>
+              <div style="margin-top:12px;">
+                <div class="muted" style="font-size: 12px; margin-bottom: 8px;">
+                  Geben Sie hier eine Trace-ID ein, um das detaillierte Protokoll für einen spezifischen Job zu laden.
+                </div>
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap: wrap;">
+                  <input id="memTraceInput" type="text" placeholder="Beispiel: 20260318-..."
+                    style="flex: 1; min-width: 150px; padding:10px 14px; border-radius:8px; border:1px solid var(--line); font-family: monospace; font-size: 13px; background:var(--panel-2); width: 100%;">
+                  <button id="memTraceSearch" class="secondary"
+                    style="flex-shrink:0; padding:10px 20px; white-space: nowrap;">Suchen</button>
+                </div>              </div>
+              <pre id="memTraceResult"
+                style="margin-top:12px;background:var(--bg-2);border-radius:8px;padding:15px;font-size:12px;overflow-x:auto;max-height:500px;display:none; border: 1px solid var(--line); line-height: 1.5;"></pre>
+            </details>
+          </section>
+
+          <section id="panel-queue" class="panel">
+            <h2 class="panel-title">Request Queue</h2>
+
+            <div class="section-card">
+              <h3 class="section-title">Statistiken</h3>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
+                <div
+                  style="background:linear-gradient(135deg,#dbeafe 0%,#bfdbfe 100%);border-radius:12px;padding:16px;text-align:center;">
+                  <div style="font-size:12px;color:#1e40af;font-weight:600;margin-bottom:8px;">Wartende Requests</div>
+                  <div id="queueSize" style="font-size:32px;font-weight:700;color:#2563eb;">0</div>
+                </div>
+                <div
+                  style="background:linear-gradient(135deg,#dcfce7 0%,#bbf7d0 100%);border-radius:12px;padding:16px;text-align:center;">
+                  <div style="font-size:12px;color:#15803d;font-weight:600;margin-bottom:8px;">Aktive Requests</div>
+                  <div id="activeCount" style="font-size:32px;font-weight:700;color:#16a34a;">0</div>
+                </div>
+                <div
+                  style="background:linear-gradient(135deg,#f3f4f6 0%,#e5e7eb 100%);border-radius:12px;padding:16px;text-align:center;">
+                  <div style="font-size:12px;color:#374151;font-weight:600;margin-bottom:8px;">Worker-Status</div>
+                  <div id="workerStatus" style="font-size:18px;font-weight:600;color:#4b5563;">-</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-card">
+              <h3 class="section-title">Aktive Requests</h3>
+              <div style="display:flex;gap:8px;margin-bottom:10px;">
+                <button id="refreshQueue" class="secondary">↻ Aktualisieren</button>
+                <button id="clearQueue" class="ghost" style="color:#ef4444;">Queue leeren</button>
+              </div>
+              <div id="activeRequestsList" style="max-height:400px;overflow-y:auto;"></div>
+            </div>
+
+            <div class="section-card">
+              <h3 class="section-title">Auto-Refresh</h3>
+              <div class="row">
+                <div>
+                  <label>Auto-Refresh</label>
+                  <select id="queueAutoRefresh">
+                    <option value="0">Aus</option>
+                    <option value="2000" selected>2 Sekunden</option>
+                    <option value="5000">5 Sekunden</option>
+                    <option value="10000">10 Sekunden</option>
+                  </select>
+                </div>
+                <div></div>
+              </div>
+            </div>
+          </section>
+
+          <section id="panel-selfimprove" class="panel">
+            <h2 class="panel-title">Self-Improve</h2>
+
+            <!-- Aktionen -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+              <button id="siAnalyzeBtn" class="primary">🔍 Jetzt analysieren</button>
+              <button id="siRefreshBtn" class="secondary">↻ Aktualisieren</button>
+              <span id="siStatus" style="color:var(--muted);font-size:13px;"></span>
+            </div>
+
+            <!-- Vorschläge (proposed) -->
+            <details open style="margin-bottom:14px;">
+              <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#60a5fa;padding:4px 0;">
+                💡 Patch-Vorschläge <span id="siCountProposed"
+                  style="font-size:12px;font-weight:400;color:var(--muted);"></span>
+              </summary>
+              <div id="siPatchListProposed" style="margin-top:10px;"></div>
+            </details>
+
+            <!-- Angewendet / Wiederhergestellt / Fehlgeschlagen -->
+            <details style="margin-bottom:14px;">
+              <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#22c55e;padding:4px 0;">
+                ✔ Angewendet / Wiederhergestellt <span id="siCountApplied"
+                  style="font-size:12px;font-weight:400;color:var(--muted);"></span>
+              </summary>
+              <div id="siPatchListApplied" style="margin-top:10px;"></div>
+            </details>
+
+            <!-- Abgelehnt -->
+            <details style="margin-bottom:14px;">
+              <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#6b7280;padding:4px 0;">
+                ✗ Abgelehnt <span id="siCountRejected"
+                  style="font-size:12px;font-weight:400;color:var(--muted);"></span>
+              </summary>
+              <div id="siPatchListRejected" style="margin-top:10px;"></div>
+            </details>
+
+            <!-- Fehlerlog / Reports -->
+            <details style="margin-bottom:18px;">
+              <summary style="cursor:pointer;font-weight:700;font-size:15px;color:var(--accent);padding:4px 0;">
+                📋 Scan-Reports (Fehlerlog)
+              </summary>
+              <div style="display:flex;gap:8px;margin-top:8px;margin-bottom:6px;">
+                <button id="siDeleteAllReportsBtn" class="secondary"
+                  style="font-size:12px;padding:4px 10px;color:#ef4444;">🗑 Alle löschen</button>
+              </div>
+              <div id="siReportList" style="margin-top:4px;"></div>
+            </details>
+
+            <!-- Patch Detail Modal -->
+            <div id="siModal"
+              style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:999;overflow-y:auto;">
+              <div
+                style="background:var(--panel);border-radius:12px;max-width:820px;margin:40px auto;padding:24px;position:relative;">
+                <button onclick="document.getElementById('siModal').style.display='none'"
+                  style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--fg);">✕</button>
+                <div id="siModalContent"></div>
+              </div>
+            </div>
+          </section>
+
+        </div>
+
+        <section id="panel-timeouts" class="panel">
+          <h2 class="panel-title">Timeouts & Zeitlimits</h2>
+          <div class="section-card">
+            <h3 class="section-title">Globale Zeitlimits</h3>
+            <div class="muted" style="margin-bottom:12px;">
+              Alle Zeitlimits werden ausschließlich hier konfiguriert – der Agent hat keinen Einfluss darauf.
+              Zu niedrige Werte führen zu vorzeitigen Abbrüchen (z.B. bei NAS-Scans mit 50.000+ Dateien), zu hohe Werte können bei Fehlern Ressourcen binden.
+            </div>
+
+            <div class="row">
+              <div>
+                <label>Maximale Job-Laufzeit (Sekunden)</label>
+                <input id="timeoutExecPlane" type="number" min="30" max="7200" step="60" placeholder="1800">
+                <div class="muted" style="font-size:11px;margin-top:4px;">
+                  <strong>Gilt für alle Quellen gleichermaßen</strong> – Telegram, Discord, WebUI und API.
+                  Wenn ein Job dieses Limit überschreitet, wird er automatisch abgebrochen und du erhältst eine Benachrichtigung.
+                  Empfehlung für komplexe Aufgaben (NAS, große Dateiscans): 1800–3600s.
+                </div>
+              </div>
+              <div>
+                <label>Max. Tool-Timeout (Sekunden)</label>
+                <input id="timeoutMaxStep" type="number" min="30" max="3600" step="30" placeholder="600">
+                <div class="muted" style="font-size:11px;margin-top:4px;">
+                  Zeitlimit für <strong>einen einzelnen Tool-Aufruf</strong> (Python-Script, Shell-Befehl, Dateisuche etc.).
+                  Nach Ablauf bricht dieser eine Schritt ab – der Agent kann es danach erneut versuchen.
+                  Sollte kleiner sein als die maximale Job-Laufzeit.
+                </div>
+              </div>
+            </div>
+
+            <div class="row" style="margin-top:16px;">
+              <div>
+                <label>LLM Verbindungs-Timeout (Sekunden)</label>
+                <input id="timeoutLlmApi" type="number" min="10" max="600" step="10" placeholder="120">
+                <div class="muted" style="font-size:11px;margin-top:4px;">
+                  Wie lange auf eine Antwort vom KI-Modell gewartet wird, bevor die HTTP-Verbindung abbricht.
+                  Steuert <strong>nur die Netzwerkverbindung</strong> zum LLM – der Job selbst läuft weiter und wird nach max. 3 Fehlversuchen sauber beendet.
+                </div>
+              </div>
+              <div>
+                <label>Auto-Save Schwelle (Zeichen)</label>
+                <input id="toolOutputCapChars" type="number" min="5000" max="500000" step="1000" placeholder="25000">
+                <div class="muted" style="font-size:11px;margin-top:4px;">
+                  Tool-Ausgaben über diesem Zeichenlimit werden automatisch als Datei gespeichert.
+                  Das LLM erhält Pfad + Vorschau statt der vollen Ausgabe – verhindert
+                  Context-Window-Overflow bei z.B. 50.000+ Dateipfaden.
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:20px;">
+              <button id="applyTimeouts">Alle Timeouts speichern</button>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <h3 class="section-title">Hintergrund-Info</h3>
+            <div class="muted" style="line-height:1.4;">
+              <p><strong>Beispiel NAS-Playlist mit 50.000 Dateien:</strong> Die Dateisuche dauert ~150s pro Durchlauf. Mit Standard-Einstellungen (Job-Laufzeit 1800s, Tool-Timeout 600s) kann der Agent bis zu 12 solcher Schritte ausführen.</p>
+              <p>Der Ablauf bei einem Timeout: <em>Tool-Aufruf läuft → Tool-Timeout überschritten → Schritt bricht ab → Agent korrigiert → Nächster Versuch → bis Job-Laufzeit erreicht → Abbruch + Benachrichtigung.</em></p>
+              <p>Der Agent selbst legt <strong>keine Timeouts</strong> fest – alle Werte kommen ausschließlich von hier.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="panel-mcp" class="panel">          <h2 class="panel-title">MCP-Tools</h2>
+          <div class="section-card">
+            <h3 class="section-title">Uebersicht</h3>
+            <div class="muted" style="margin-bottom:8px;">
+              Schneller Live-Blick auf registrierte MCP-Tools. 
+            </div>
+            <div class="row">
+              <div>
+                <label>Suche</label>
+                <input id="mcpToolsSearch" type="text" placeholder="Name/Beschreibung/Server">
+                <div class="muted" style="font-size:11px;margin-top:4px;">Filtert die Tabelle clientseitig in Echtzeit.
+                </div>
+              </div>
+              <div>
+                <label>Typ</label>
+                <select id="mcpToolsType">
+                  <option value="all">alle</option>
+                  <option value="external">extern</option>
+                </select>
+                <div class="muted" style="font-size:11px;margin-top:4px;">Filtert externe MCP-Tools.</div>
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label>Sortierung</label>
+                <select id="mcpToolsSort">
+                  <option value="name_asc">Name (A→Z)</option>
+                  <option value="name_desc">Name (Z→A)</option>
+                  <option value="server_asc">Server (A→Z)</option>
+                  <option value="server_desc">Server (Z→A)</option>
+                </select>
+              </div>
+              <div></div>
+            </div>
+            <div class="row">
+              <button id="mcpToolsRefreshBtn">MCP-Server abfragen (Refresh)</button>
+            </div>
+            <div class="muted" style="font-size:11px;margin-top:4px;">Liest MCP-Server neu ein und aktualisiert den
+              lokalen Tool-Cache.</div>
+            <div id="mcpToolsStatus" class="muted" style="margin-top:6px;"></div>
+          </div>
+          <div class="section-card">
+            <h3 class="section-title">Installierte MCP-Server</h3>
+            <div class="muted" style="margin-bottom:8px;">
+              Liste der angebundenen externen MCP-Server. Das Loeschen entfernt den Server dauerhaft aus der Konfiguration.
+            </div>
+            <div id="mcpServersList" class="list"></div>
+          </div>
+          <div class="section-card">
+            <h3 class="section-title">Verfuegbare MCP-Tools</h3>
+            <div class="muted" style="margin-bottom:8px;">
+              Direkte Liste aus dem MCP-Cache. Loeschen ist nur fuer lokale Dynamic-MCP-Tools moeglich.
+            </div>
+            <div id="mcpToolsList" class="list"></div>
+          </div>
+          <div class="section-card">
+            <h3 class="section-title">MCP-Registry Suche</h3>
+            <div class="muted" style="margin-bottom:8px;">
+              Sucht in angebundenen MCP-Registries nach installierbaren Servern. Ergebnisse liefern Vorschlaege, keine
+              Zwangsinstallation.
+            </div>
+            <div class="row">
+              <div>
+                <label>Suchbegriff</label>
+                <input id="mcpRegistryQuery" type="text" placeholder="z. B. filesystem, calendar, github">
+              </div>
+              <div></div>
+            </div>
+            <div class="row">
+              <button id="mcpRegistrySearchBtn">Registry durchsuchen</button>
+            </div>
+            <div id="mcpRegistryStatus" class="muted" style="margin-top:6px;"></div>
+            <div id="mcpRegistryResults" class="list" style="margin-top:10px;"></div>
+            <pre id="mcpRegistryDetails"
+              style="margin-top:10px;white-space:pre-wrap;background:var(--bg-2);padding:10px;border-radius:8px;border:1px solid var(--line);display:none;"></pre>
+          </div>
+          <div class="section-card">
+            <h3 class="section-title">MCP-Quellen</h3>
+            <div class="muted" style="margin-bottom:8px;">
+              Definiert, aus welchen Registries/Repos gesucht wird. `Quelle ID` muss eindeutig sein.
+            </div>
+            <div class="row">
+              <div>
+                <label>Quelle ID</label>
+                <input id="mcpSourceId" type="text" placeholder="z. B. mcp_registry_official">
+                <div class="muted" style="font-size:11px;margin-top:4px;">Interner Schluessel fuer Update/Loeschen
+                  dieser Quelle.</div>
+              </div>
+              <div>
+                <label>Typ</label>
+                <select id="mcpSourceType">
+                  <option value="mcp_registry">mcp_registry</option>
+                  <option value="github">github</option>
+                </select>
+                <div class="muted" style="font-size:11px;margin-top:4px;">Parser-/Suchlogik je nach Quelltyp.</div>
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label>Name (optional)</label>
+                <input id="mcpSourceName" type="text" placeholder="Anzeigename">
+              </div>
+              <div>
+                <label>Base URL</label>
+                <input id="mcpSourceBaseUrl" type="text" placeholder="https://registry.modelcontextprotocol.io">
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label>Aktiv</label>
+                <select id="mcpSourceEnabled">
+                  <option value="true">aktiv</option>
+                  <option value="false">inaktiv</option>
+                </select>
+              </div>
+              <div></div>
+            </div>
+            <div class="row">
+              <button id="mcpSourceSaveBtn">Quelle speichern</button>
+              <button id="mcpSourceReloadBtn" class="secondary">Quellen neu laden</button>
+            </div>
+            <div id="mcpSourcesList" class="list" style="margin-top:10px;"></div>
+          </div>
+          <div class="section-card">
+            <h3 class="section-title">Tool-Register (Baum)</h3>
+            <div
+              style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:10px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg-2);">
+              <div><strong style="color:var(--text);">Legende:</strong></div>
+              <div><code>core</code> = feste Built-in Tools (Function Calling des Agents)</div>
+              
+              <div><code>mcp</code> = MCP-Tools aus Servern/Registries (auch <code>local_dynamic</code>)</div>
+              <div><code>skills</code> = Skill-Tools aus <code>skills/</code> (z. B. Gmail), gruppiert pro Skill</div>
+              
+            </div>
+            <div class="row">
+              <button id="toolTreeReloadBtn" class="secondary">Register manuell neu laden</button>
+            </div>
+            <div id="toolTreeStatus" class="muted" style="margin-top:6px;"></div>
+            <div id="toolTreeList" class="list" style="margin-top:10px;"></div>
+          </div>
+          <div class="section-card">
+            <h3 class="section-title">MCP-Einstellungen</h3>
+            <div class="muted" style="margin-bottom:8px;">
+              Laufzeitverhalten der MCP-Verbindungen und des lokalen MCP-Tool-Caches.
+            </div>
+            <div class="row">
+              <div>
+                <label>MCP Timeout (Extern/API)</label>
+                <input id="mcpTimeoutInput" type="number" min="5" max="1800" step="1" placeholder="45">
+                <div class="muted" style="font-size:11px;margin-top:4px;">Maximale Laufzeit pro externem MCP-Call (z.B.
+                  Google-Suche, API-Abfragen).</div>
+              </div>
+              <div>
+                <label>MCP Cache TTL (Sek.)</label>
+                <input id="mcpCacheTtlInput" type="number" min="30" max="3600" step="1" placeholder="300">
+                <div class="muted" style="font-size:11px;margin-top:4px;">Gueltigkeit des Tool-Caches, danach erneutes
+                  Laden noetig.</div>
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label>Lokaler MCP-Server</label>
+                <select id="mcpLocalEnabled">
+                  <option value="true">aktiv</option>
+                  <option value="false">inaktiv</option>
+                </select>
+                <div class="muted" style="font-size:11px;margin-top:4px;">Steuert `local_dynamic` (Bridge von
+                  Dynamic-Tools zu MCP).</div>
+              </div>
+              <div></div>
+            </div>
+            <div class="row">
+              <button id="applyMcp">MCP-Einstellungen speichern</button>
+            </div>
+          </div>
+          </section>
+
+        <section id="panel-simulate" class="panel">
+          <h2 class="panel-title">Simulator</h2>
+          <div class="section-card">
+            <h3 class="section-title">LLM Ablauf-Simulation</h3>
+            <div class="muted">Zeigt Intent, Tool-Auswahl und geplante Schritte – ohne Ausfuehrung.</div>
+            <div style="margin-top:10px;">
+              <label>Anfrage / Anweisung</label>
+              <textarea id="simulateInput" rows="6"
+                placeholder="z.B. 'Suche in Z:\\ nach mp3 und erstelle eine Liste'"></textarea>
+            </div>
+            <button id="simulateRun" style="margin-top:8px;">Simulation starten</button>
+            <pre id="simulateOutput" class="msg-pre"
+              style="margin-top:10px;display:none;max-height:360px;overflow:auto;background:#ffffff;color:#000000;border:1px solid var(--line);padding:10px;border-radius:8px;"></pre>
+          </div>
+        </section>
+
+        <script src="/static/js/app.js"></script>
+</body>
+
+</html>

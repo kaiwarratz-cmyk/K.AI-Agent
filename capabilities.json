@@ -1,0 +1,84 @@
+{
+  "version": "1.3",
+  "updated_at": "2026-03-19T22:00:00Z",
+  "intents": [
+    {
+      "id": "filesystem",
+      "description": "Datei-/Ordneroperationen, Suchen, Lesen, Schreiben"
+    },
+    {
+      "id": "script",
+      "description": "Script-Erstellung und -Ausfuehrung (Python/PowerShell)"
+    },
+    {
+      "id": "cron",
+      "description": "Zeitbasierte Aufgaben"
+    },
+    {
+      "id": "knowledge_or_web",
+      "description": "Wissen/Websuche"
+    }
+  ],
+  "tools": [
+    {
+      "id": "fs_read_file",
+      "intent": "filesystem",
+      "args": ["path"]
+    },
+    {
+      "id": "fs_write_file",
+      "intent": "filesystem",
+      "args": ["path", "content"]
+    },
+    {
+      "id": "fs_find_files",
+      "intent": "filesystem",
+      "args": ["path", "pattern"]
+    },
+    {
+      "id": "fs_grep",
+      "intent": "filesystem",
+      "args": ["path", "pattern"]
+    },
+    {
+      "id": "fs_get_tree",
+      "intent": "filesystem",
+      "args": ["path", "max_depth"]
+    },
+    {
+      "id": "fs_edit_replace",
+      "intent": "filesystem",
+      "args": ["path", "old_str", "new_string"]
+    },
+    {
+      "id": "sys_shell_command",
+      "intent": "script",
+      "args": ["command"]
+    },
+    {
+      "id": "sys_python_exec",
+      "intent": "script",
+      "args": ["code"]
+    },
+    {
+      "id": "mem_update_plan",
+      "intent": "filesystem",
+      "args": ["content"]
+    },
+    {
+      "id": "mem_save_fact",
+      "intent": "filesystem",
+      "args": ["key", "fact"]
+    },
+    {
+      "id": "mem_get_facts",
+      "intent": "filesystem",
+      "args": []
+    },
+    {
+      "id": "send_messenger_file",
+      "intent": "filesystem",
+      "args": ["path"]
+    }
+  ]
+}

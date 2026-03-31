@@ -1,0 +1,13 @@
+﻿{
+  "version": 1,
+  "model": "gemini-2.5-pro",
+  "match": "exact",
+  "strategy_order": ["native_tools", "json_schema", "json_text"],
+  "native_tools": {
+    "enabled": true,
+    "api": "gemini_function_calling",
+    "schema": {
+      "strip_additional_properties": true
+    }
+  }
+}

@@ -1,0 +1,6 @@
+﻿{
+  "version": 1,
+  "model": "gpt-4o",
+  "match": "prefix",
+  "strategy_order": ["native_tools", "json_schema", "json_text"]
+}

@@ -1,0 +1,49 @@
+# Credentials & Secrets — NIEMALS committen
+config.json
+data/secrets.db
+*.key
+*.pem
+*.env
+.env*
+
+# Laufzeit-Daten
+data/logs/
+data/sessions/
+data/chroma_memory/
+data/workspace/
+data/task_state.db
+data/cron_jobs.json
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Backups
+*.bak
+*.bak2
+*.backup
+
+# Debug / Install Logs
+install_debug.log
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,67 @@
+{
+  "id": "thingiverse",
+  "name": "Thingiverse 3D-Modelle",
+  "description": "Sucht und laed 3D-Druckmodelle von Thingiverse (kostenloser API-Key erforderlich).",
+  "enabled_by_default": false,
+  "secrets_required": [
+    {
+      "alias": "thingiverse_api_token",
+      "label": "Thingiverse App Token",
+      "description": "App Token von https://www.thingiverse.com/developers. Kostenlos, nur Registrierung noetig.",
+      "required": true
+    }
+  ],
+  "tools": [
+    {
+      "id": "thingiverse_search",
+      "intent": "knowledge_or_web",
+      "kind": "thingiverse_search",
+      "description": "Suche nach 3D-Druckmodellen auf Thingiverse. Nutze immer einen praezisen Suchbegriff (z.B. 'sonic the hedgehog' statt nur 'sonic'). Gibt 5 Treffer mit ID und Name zurueck. Waehle den passendsten Treffer fuer thingiverse_get_files.",
+      "required": {
+        "query": "str"
+      },
+      "optional": {
+        "per_page": "int",
+        "sort": "str"
+      }
+    },
+    {
+      "id": "thingiverse_get_files",
+      "intent": "knowledge_or_web",
+      "kind": "thingiverse_get_files",
+      "description": "Gibt die STL/OBJ-Dateien fuer ein Thingiverse-Modell zurueck. Das Feld 'direct_url' enthaelt die direkte Download-URL fuer web_download. Waehle eine .stl Datei.",
+      "required": {
+        "thing_id": "str"
+      },
+      "optional": {}
+    }
+  ],
+  "handlers": {
+    "thingiverse_search": {
+      "type": "http_json",
+      "method": "GET",
+      "url": "https://api.thingiverse.com/search/{{query}}",
+      "token_secret": "thingiverse_api_token",
+      "body": {
+        "type": "things",
+        "sort": "{{sort}}",
+        "per_page": "{{per_page}}"
+      },
+      "response_path": "hits",
+      "result_fields": ["id", "name"],
+      "result_limit": 5,
+      "timeout_sec": 15
+    },
+    "thingiverse_get_files": {
+      "type": "http_json",
+      "method": "GET",
+      "url": "https://api.thingiverse.com/things/{{thing_id}}/files",
+      "token_secret": "thingiverse_api_token",
+      "body": {},
+      "response_path": "",
+      "result_fields": ["id", "name", "size", "download_url"],
+      "result_limit": 10,
+      "timeout_sec": 15
+    }
+  }
+}

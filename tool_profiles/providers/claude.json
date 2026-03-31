@@ -1,0 +1,13 @@
+﻿{
+    "native_tools":  {
+                         "api":  "anthropic_tools",
+                         "enabled":  true
+                     },
+    "version":  1,
+    "strategy_order":  [
+                           "native_tools",
+                           "json_schema",
+                           "json_text"
+                       ],
+    "provider_type":  "anthropic"
+}

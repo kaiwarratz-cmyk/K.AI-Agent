@@ -1,0 +1,9 @@
+﻿{
+  "version": 1,
+  "provider_type": "openai_compatible",
+  "strategy_order": ["native_tools", "json_schema", "json_text"],
+  "native_tools": {
+    "enabled": true,
+    "api": "chat_completions_tools"
+  }
+}
