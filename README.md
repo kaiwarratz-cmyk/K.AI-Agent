@@ -166,6 +166,7 @@ WebUI dann unter: `http://localhost:8765`
 | **Groq** | llama-3.1-70b (schnell, kostenlos) | Groq Cloud |
 | **Mistral** | mistral-large, mistral-small | Mistral AI |
 | **Grok** | grok-2-latest | xAI |
+| **Z.ai** | glm-4.7, glm-4.6, glm-4.5, glm-4.5-flash | Z.ai (Zhipu AI) |
 | **OpenRouter** | 100+ Modelle über eine API | OpenRouter |
 
 ---
