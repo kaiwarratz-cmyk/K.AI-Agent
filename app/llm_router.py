@@ -259,7 +259,6 @@ class LLMRouter:
 
     def _provider_chain(self) -> list[str]:
         llm = self._llm_config()
-        providers = self.config.get("providers", {})
         active = str(llm.get("active_provider_id", "")).strip()
         configured_fallbacks = llm.get("fallback_provider_ids", [])
         order: list[str] = []
@@ -270,10 +269,7 @@ class LLMRouter:
                 p = str(pid or "").strip()
                 if p and p not in order:
                     order.append(p)
-        for pid in providers.keys():
-            p = str(pid or "").strip()
-            if p and p not in order:
-                order.append(p)
+        # Kein automatisches Hinzufügen aller Provider — nur aktiver + explizite Fallbacks
         out: list[str] = []
         for pid in order:
             cfg = self._provider_config(pid)
@@ -967,9 +963,8 @@ class LLMRouter:
 
         return out
 
-    @staticmethod
     def _msgs_with_tools_anthropic(
-        *, base_url: str, api_key: str, model: str,
+        self, *, base_url: str, api_key: str, model: str,
         messages: List[Dict[str, Any]], tools: List[Dict[str, Any]],
         temperature: float, timeout: int,
     ) -> Tuple[str, List[Dict[str, Any]], str]:
@@ -991,19 +986,29 @@ class LLMRouter:
             "temperature": temperature,
             "messages": converted,
         }
+        # Prompt Caching: System-Prompt als strukturierter Block mit cache_control
+        # (identische Logik wie _chat_anthropic_msgs — cacht nur wenn Claude 3+ und >=4096 chars)
+        use_caching = self._should_use_prompt_caching(model)
         if system_text:
-            payload["system"] = system_text
+            if use_caching and len(system_text) >= 4096:
+                payload["system"] = [{"type": "text", "text": system_text, "cache_control": {"type": "ephemeral"}}]
+            else:
+                payload["system"] = system_text
         if a_tools:
             payload["tools"] = a_tools
         headers = {
             "x-api-key": api_key,
             "anthropic-version": "2023-06-01",
+            "anthropic-beta": "prompt-caching-2024-07-31",
             "content-type": "application/json",
         }
         with httpx.Client(timeout=timeout, trust_env=False) as client:
             resp = client.post(f"{base_url}/v1/messages", headers=headers, json=payload)
             resp.raise_for_status()
             data = resp.json()
+        # Cache-Stats loggen (falls aktiviert)
+        if use_caching and isinstance(data, dict) and "usage" in data:
+            self._log_cache_stats(data["usage"])
         stop_reason = str(data.get("stop_reason", "end_turn") or "end_turn")
         blocks = data.get("content", []) if isinstance(data, dict) else []
         text_parts: List[str] = []
@@ -1241,6 +1246,116 @@ class LLMRouter:
         for i in range(0, len(result.text), 18):
             yield result.text[i : i + 18]
             time.sleep(0.02)
+
+    def stream_chat_with_tools(
+        self,
+        messages: List[Dict[str, Any]],
+        tools: List[Dict[str, Any]],
+        on_text_chunk: Optional[Callable[[str], None]] = None,
+    ) -> Tuple[str, List[Dict[str, Any]], str]:
+        """
+        Streaming-Version von chat_messages_with_tools.
+        Ruft on_text_chunk(chunk) live für jeden Text-Token auf.
+        Gibt (full_text, tool_calls, stop_reason) zurück — identisch zu chat_messages_with_tools.
+        Bei Providern ohne Streaming-Support oder bei Fehler: transparenter Fallback auf blocking.
+        """
+        chain = self._provider_chain()
+        if not chain:
+            raise LLMRouterError("Kein verwendbarer Provider gefunden.")
+        provider_id = chain[0]
+        _, _, provider_type = self._provider_runtime(provider_id)
+        if provider_type not in {"openai_compatible", "xai"}:
+            # Anthropic streaming + tool calls ist komplex → blocking Fallback
+            return self.chat_messages_with_tools(messages, tools)
+        try:
+            return self._stream_with_tools_openai(messages, tools, on_text_chunk, provider_id)
+        except Exception:
+            # Fehler im Stream → blocking Fallback, keine Regression
+            return self.chat_messages_with_tools(messages, tools)
+
+    def _stream_with_tools_openai(
+        self,
+        messages: List[Dict[str, Any]],
+        tools: List[Dict[str, Any]],
+        on_text_chunk: Optional[Callable[[str], None]],
+        provider_id: str,
+    ) -> Tuple[str, List[Dict[str, Any]], str]:
+        """Streamt Text-Tokens live, akkumuliert Tool-Call-Deltas für OpenAI-compatible APIs."""
+        provider_cfg, model, _ = self._provider_runtime(provider_id)
+        api_key = str(provider_cfg.get("api_key", "")).strip()
+        base_url = str(provider_cfg.get("base_url", "")).rstrip("/")
+        temp = float(self._llm_config().get("temperature", 0.2))
+
+        converted = LLMRouter._history_to_openai(messages)
+        payload: Dict[str, Any] = {
+            "model": model,
+            "messages": converted,
+            "temperature": temp,
+            "stream": True,
+        }
+        if tools:
+            payload["tools"] = tools
+            payload["tool_choice"] = "auto"
+        headers: Dict[str, str] = {"Content-Type": "application/json"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+
+        full_text = ""
+        tool_calls_raw: Dict[int, Dict[str, str]] = {}
+        stop_reason = "stop"
+
+        with httpx.Client(timeout=self._timeout, trust_env=False) as client:
+            with client.stream("POST", f"{base_url}/chat/completions", json=payload, headers=headers) as resp:
+                resp.raise_for_status()
+                for line in resp.iter_lines():
+                    if not line or not line.startswith("data: "):
+                        continue
+                    data_str = line[6:]
+                    if data_str.strip() == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data_str)
+                    except Exception:
+                        continue
+                    for choice in chunk.get("choices", []):
+                        delta = choice.get("delta", {})
+                        finish = choice.get("finish_reason")
+                        if finish:
+                            stop_reason = finish
+                        # Text-Token live weiterleiten
+                        content = delta.get("content") or ""
+                        if content:
+                            full_text += content
+                            if on_text_chunk:
+                                try:
+                                    on_text_chunk(content)
+                                except Exception:
+                                    pass
+                        # Tool-Call-Deltas akkumulieren
+                        for tc_delta in delta.get("tool_calls", []):
+                            idx = int(tc_delta.get("index", 0))
+                            if idx not in tool_calls_raw:
+                                tool_calls_raw[idx] = {"id": "", "name": "", "arguments": ""}
+                            if "id" in tc_delta:
+                                tool_calls_raw[idx]["id"] = str(tc_delta["id"])
+                            fn = tc_delta.get("function", {})
+                            if "name" in fn:
+                                tool_calls_raw[idx]["name"] += str(fn["name"])
+                            if "arguments" in fn:
+                                tool_calls_raw[idx]["arguments"] += str(fn["arguments"])
+
+        # Tool-Calls parsen
+        parsed_tool_calls: List[Dict[str, Any]] = []
+        for idx in sorted(tool_calls_raw.keys()):
+            tc = tool_calls_raw[idx]
+            try:
+                args = json.loads(tc["arguments"] or "{}")
+            except Exception:
+                args = {}
+            if isinstance(args, dict):
+                parsed_tool_calls.append({"kind": tc["name"], "_tool_id": tc["id"], **args})
+
+        return full_text, parsed_tool_calls, stop_reason
 
     @staticmethod
     def _parse_retry_after(value: Optional[str]) -> Optional[float]:

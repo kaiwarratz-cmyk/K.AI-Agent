@@ -294,9 +294,23 @@ class IntentRouter:
     ) -> tuple[str, Optional[str]]:
         from app.dialogue_engine import Route, DialogueState
         
-        lower = (message or "").lower()
+        lower = (message or "").lower().strip()
         current_task = working_mem.get_task_desc()
         dialogue_state = working_mem.get_dialogue_state()
+
+        # DETERMINISTIC SIMPLE: Begrüßungen & Small-Talk → immer SIMPLE, kein LLM nötig.
+        # Verhindert dass schwache Modelle "hallo" als FOLLOWUP klassifizieren und alte Tasks fortsetzen.
+        _SIMPLE_EXACT = {
+            "hallo", "hi", "hey", "moin", "guten morgen", "guten tag", "guten abend",
+            "gute nacht", "tschüss", "tschüs", "tschuss", "bye", "ciao",
+            "danke", "danke schön", "danke schoen", "bitte",
+            "ok", "okay", "alles klar", "verstanden", "gut", "super", "prima", "toll", "perfekt",
+            "ja", "nein", "jo", "nö", "noe", "ne", "jep", "yep",
+            "wie geht es dir", "wie geht's", "wie gehts", "was geht", "was machst du",
+            "wer bist du", "was bist du", "was kannst du", "bist du noch da",
+        }
+        if lower in _SIMPLE_EXACT or len(lower) <= 3:
+            return Route.SIMPLE, None
 
         # FORCED FOLLOWUP: Wenn der Agent auf eine Nutzer-Antwort wartet (AWAITING_INPUT),
         # immer als followup routen — kein LLM-Aufruf nötig, kein Kontextverlust möglich.

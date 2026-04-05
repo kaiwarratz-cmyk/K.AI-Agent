@@ -169,6 +169,27 @@
             </div>
 
             <div class="section-card">
+              <h3 class="section-title">API Key setzen</h3>
+              <div class="muted" style="margin-bottom:8px;">
+                API Key für einen bestehenden Provider eintragen oder aktualisieren.
+              </div>
+              <div class="row">
+                <div>
+                  <label>Provider</label>
+                  <select id="apiKeyProvider"></select>
+                </div>
+                <div style="flex:1;">
+                  <label>API Key</label>
+                  <input id="apiKeyInput" type="password" placeholder="sk-... / AIza... / ..." style="width:100%;">
+                </div>
+              </div>
+              <div class="row">
+                <button id="applyApiKey">API Key speichern</button>
+                <button id="toggleApiKeyVisible" class="secondary">Anzeigen</button>
+              </div>
+            </div>
+
+            <div class="section-card">
               <h3 class="section-title">Ollama Support</h3>
               <div class="row">
                 <div>
@@ -1095,7 +1116,7 @@
           </div>
         </section>
 
-        <script src="/static/js/app.js"></script>
+        <script src="/static/js/app.js?v=1775220599"></script>
 </body>
 
 </html>

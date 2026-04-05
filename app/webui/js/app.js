@@ -555,6 +555,21 @@ const providerEl = document.getElementById("provider");
             });
           }
 
+          function renderApiKeyProviders() {
+            const sel = document.getElementById("apiKeyProvider");
+            if (!sel) return;
+            const prev = sel.value;
+            sel.innerHTML = "";
+            (catalog.providers || []).forEach(p => {
+              if (p.id === "ollama") return;
+              const opt = document.createElement("option");
+              opt.value = p.id;
+              opt.textContent = p.api_key_set ? `${p.name} (${p.id}) ✓` : `${p.name} (${p.id}) – kein Key`;
+              sel.appendChild(opt);
+            });
+            if (prev && Array.from(sel.options).some(o => o.value === prev)) sel.value = prev;
+          }
+
           function noCacheUrl(url) {
             const sep = url.includes("?") ? "&" : "?";
             return `${url}${sep}_ts=${Date.now()}`;
@@ -653,6 +668,7 @@ const providerEl = document.getElementById("provider");
               providerEl.value = firstAllowed;
             }
             renderModels();
+            renderApiKeyProviders();
             applyRiskHighlights();
           }
 
@@ -1440,6 +1456,40 @@ const providerEl = document.getElementById("provider");
             await loadConfigView();
             await refreshMetaLine();
             appendMsg("bot", "Ollama-Konfiguration gespeichert.");
+          });
+          document.getElementById("applyApiKey").addEventListener("click", async () => {
+            const pid = (document.getElementById("apiKeyProvider").value || "").trim();
+            const key = (document.getElementById("apiKeyInput").value || "").trim();
+            if (!pid || !key) {
+              appendMsg("bot", "Bitte Provider auswaehlen und API Key eingeben.");
+              return;
+            }
+            const res = await fetch(`/api/config/provider/${encodeURIComponent(pid)}/apikey`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ api_key: key })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+              appendMsg("bot", `API Key speichern fehlgeschlagen: ${data.detail || "unbekannt"}`);
+              return;
+            }
+            document.getElementById("apiKeyInput").value = "";
+            await loadCatalog();
+            await loadConfigView();
+            await refreshMetaLine();
+            appendMsg("bot", `API Key fuer '${pid}' gespeichert.`);
+          });
+          document.getElementById("toggleApiKeyVisible").addEventListener("click", () => {
+            const input = document.getElementById("apiKeyInput");
+            const btn = document.getElementById("toggleApiKeyVisible");
+            if (input.type === "password") {
+              input.type = "text";
+              btn.textContent = "Verbergen";
+            } else {
+              input.type = "password";
+              btn.textContent = "Anzeigen";
+            }
           });
           document.getElementById("refreshLlmCatalog").addEventListener("click", async () => {
             await loadCatalog();

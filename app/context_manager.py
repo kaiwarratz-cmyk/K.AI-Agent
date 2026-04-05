@@ -1,11 +1,69 @@
 from __future__ import annotations
+import re
 import sqlite3
 import json
 import os
 import time
 import threading
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+# ── Qualitäts-Gate: triviale Facts ablehnen ────────────────────────────────
+# Keys die nie gespeichert werden sollen (Regex auf lowercase key)
+_TRIVIAL_KEY_PATTERNS = [
+    # Standard-Python-Pakete — kein Discovery-Aufwand nötig
+    re.compile(
+        r"^pkg_(requests|json|os|sys|re|math|time|datetime|pathlib|subprocess|"
+        r"threading|logging|collections|itertools|functools|typing|abc|io|copy|"
+        r"shutil|glob|fnmatch|hashlib|base64|urllib|http|email|html|xml|csv|"
+        r"sqlite3|random|string|uuid|enum|dataclasses|contextlib|warnings|"
+        r"traceback|inspect|operator|struct|array|queue|heapq|bisect|weakref|"
+        r"gc|platform|signal|socket|ssl|select|errno|ctypes|unittest|doctest|"
+        r"pdb|profile|timeit)$"
+    ),
+    # Temporäre Job-States (ändern sich pro Job)
+    re.compile(r"_(setup_status|needs_setup|step_status|task_status|job_status)$"),
+]
+
+# Values die nie gespeichert werden sollen
+_TRIVIAL_VALUE_PATTERNS = [
+    re.compile(
+        r"^(True|False|None|0|1|ok|done|fertig|verfügbar|available|installed|"
+        r"not installed|ja|nein|yes|no)$",
+        re.IGNORECASE,
+    ),
+    re.compile(r"ist (verfügbar|installiert|vorhanden|nicht vorhanden|standard)$", re.IGNORECASE),
+]
+
+
+_VALID_FACT_TYPES = {"device", "credential", "path", "api_quirk", "config", "unknown"}
+
+# Typ-abhängige TTLs in Tagen (None = nie löschen)
+_TYPE_TTL_DAYS: Dict[str, Optional[int]] = {
+    "credential": None,
+    "device":     None,
+    "path":       180,
+    "api_quirk":  180,
+    "config":     365,
+    "unknown":    60,
+}
+
+
+def _is_trivial_fact(key: str, value: str) -> bool:
+    """Gibt True zurück wenn der Fakt zu trivial ist um gespeichert zu werden."""
+    k = str(key or "").strip().lower()
+    v = str(value or "").strip()
+    for p in _TRIVIAL_KEY_PATTERNS:
+        if p.search(k):
+            return True
+    for p in _TRIVIAL_VALUE_PATTERNS:
+        if p.search(v):
+            return True
+    # Zu kurz/nichtssagend
+    if len(v) < 10:
+        return True
+    return False
 
 class ContextManager:
     """
@@ -51,10 +109,17 @@ class ContextManager:
                 CREATE TABLE IF NOT EXISTS discovered_facts (
                     key TEXT PRIMARY KEY,
                     value TEXT,
+                    type TEXT DEFAULT 'unknown',
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
             conn.commit()
+            # Rückwärtskompatibilität: type-Spalte nachrüsten falls Tabelle alt
+            try:
+                conn.execute("ALTER TABLE discovered_facts ADD COLUMN type TEXT DEFAULT 'unknown'")
+                conn.commit()
+            except Exception:
+                pass  # Spalte existiert bereits
 
     def _invalidate_pinned_cache(self) -> None:
         """Invalidiert den TTL-Cache nach Plan/Fact-Änderungen."""
@@ -94,15 +159,24 @@ class ContextManager:
         except Exception:
             pass
 
-    def retrieve_relevant_facts(self, query: str, top_k: int = 8) -> Dict[str, Dict[str, str]]:
+    def retrieve_relevant_facts(
+        self, query: str, top_k: int = 8, fact_type: Optional[str] = None
+    ) -> Dict[str, Dict[str, str]]:
         """
         Semantisches Fact-Retrieval (ChatGPT-Style):
-        1. ChromaDB Embedding-Suche (all-MiniLM-L6-v2)
-        2. Fallback: neueste top_k Fakten wenn ChromaDB nicht verfügbar
+        1. Optionaler Typ-Filter (reduziert Suchraum vor Embedding-Suche)
+        2. ChromaDB Embedding-Suche (all-MiniLM-L6-v2)
+        3. Fallback: neueste top_k Fakten wenn ChromaDB nicht verfügbar
         """
         all_facts = self.read_facts_with_meta()
         if not all_facts:
             return {}
+
+        # Typ-Filter: nur Facts des gesuchten Typs berücksichtigen
+        if fact_type and fact_type in _VALID_FACT_TYPES:
+            all_facts = {k: v for k, v in all_facts.items() if v.get("type") == fact_type}
+            if not all_facts:
+                return {}
 
         # Primär: ChromaDB semantische Suche
         chroma = self._get_chroma()
@@ -206,29 +280,39 @@ class ContextManager:
                 return {}
 
     def read_facts_with_meta(self) -> Dict[str, Dict[str, str]]:
-        """Liest alle Fakten mit Zeitstempel: {key: {value, timestamp}}."""
+        """Liest alle Fakten mit Typ und Zeitstempel: {key: {value, type, timestamp}}."""
         with self._lock:
             try:
                 conn = self._get_conn()
                 cursor = conn.execute(
-                    "SELECT key, value, timestamp FROM discovered_facts ORDER BY timestamp DESC"
+                    "SELECT key, value, type, timestamp FROM discovered_facts ORDER BY timestamp DESC"
                 )
                 return {
-                    row[0]: {"value": row[1], "timestamp": row[2]}
+                    row[0]: {"value": row[1], "type": row[2] or "unknown", "timestamp": row[3]}
                     for row in cursor.fetchall()
                 }
             except Exception:
                 return {}
 
-    def save_fact(self, key: str, value: str) -> str:
-        """Speichert einen Fakt in der SQLite-Datenbank (Upsert)."""
+    def save_fact(self, key: str, value: str, _bypass: bool = False, fact_type: str = "unknown") -> str:
+        """Speichert einen Fakt in der SQLite-Datenbank (Upsert).
+        _bypass=True: Qualitäts-Gate überspringen (nur für interne System-Calls).
+        fact_type: device | credential | path | api_quirk | config | unknown
+        """
+        key = str(key or "").strip()
         value = str(value or "").strip()
+        fact_type = str(fact_type or "unknown").strip()
+        if fact_type not in _VALID_FACT_TYPES:
+            fact_type = "unknown"
+        # Qualitäts-Gate: triviale Facts ablehnen
+        if not _bypass and _is_trivial_fact(key, value):
+            return f"Fakt nicht gespeichert (trivial/nicht speichernswert): {key}"
         with self._lock:
             try:
                 conn = self._get_conn()
                 conn.execute(
-                    "INSERT OR REPLACE INTO discovered_facts (key, value, timestamp) VALUES (?, ?, CURRENT_TIMESTAMP)",
-                    (key, value)
+                    "INSERT OR REPLACE INTO discovered_facts (key, value, type, timestamp) VALUES (?, ?, ?, CURRENT_TIMESTAMP)",
+                    (key, value, fact_type)
                 )
                 conn.commit()
                 self._invalidate_pinned_cache()
@@ -238,7 +322,7 @@ class ContextManager:
                     if chroma is not None:
                         chroma.upsert_memory(
                             "fact", key,
-                            {"info": f"{key}: {value}"},
+                            {"info": f"{key}: {value}", "fact_type": fact_type},
                             confidence=1.0,
                             collection_name="fact",
                         )
@@ -252,7 +336,7 @@ class ContextManager:
                         warning = f"\nWARNUNG: Relativer Pfad gespeichert. Absoluter Pfad wäre: {abs_path} — bitte mit mem_save_fact korrigieren."
                     except Exception:
                         pass
-                return f"Fakt gespeichert: {key} = {value}{warning}"
+                return f"Fakt gespeichert [{fact_type}]: {key} = {value}{warning}"
             except Exception as e:
                 return f"ERROR beim DB-Speichern: {e}"
 
@@ -273,13 +357,67 @@ class ContextManager:
             except Exception as e:
                 return f"ERROR beim Löschen: {e}"
 
+    def get_fact(self, key: str) -> Optional[str]:
+        """Direktes Key-Lookup ohne semantisches Retrieval. Gibt None zurück wenn nicht vorhanden."""
+        with self._lock:
+            try:
+                conn = self._get_conn()
+                row = conn.execute(
+                    "SELECT value FROM discovered_facts WHERE key = ?", (key,)
+                ).fetchone()
+                return row[0] if row else None
+            except Exception:
+                return None
+
+    def cleanup_old_facts(self, max_age_days: Optional[int] = None) -> int:
+        """
+        Löscht Facts anhand typ-abhängiger TTLs (credential/device: permanent).
+        max_age_days überschreibt den Typ-TTL falls angegeben (nützlich für Tests).
+        Gibt Anzahl gelöschter Facts zurück.
+        """
+        deleted = 0
+        with self._lock:
+            try:
+                conn = self._get_conn()
+                rows = conn.execute(
+                    "SELECT key, type, timestamp FROM discovered_facts"
+                ).fetchall()
+                for key, fact_type, ts in rows:
+                    k = str(key or "").lower()
+                    # System-interne Keys nie löschen
+                    if k.startswith("agent_state__") or k.startswith("_"):
+                        continue
+                    # Typ-TTL bestimmen
+                    ttl = _TYPE_TTL_DAYS.get(str(fact_type or "unknown"), 60)
+                    if ttl is None:
+                        continue  # credential/device: permanent
+                    if max_age_days is not None:
+                        ttl = min(ttl, max_age_days)
+                    cutoff = (datetime.now() - timedelta(days=ttl)).strftime("%Y-%m-%d %H:%M:%S")
+                    if str(ts or "") < cutoff:
+                        conn.execute("DELETE FROM discovered_facts WHERE key = ?", (key,))
+                        deleted += 1
+                if deleted:
+                    conn.commit()
+                    self._invalidate_pinned_cache()
+            except Exception:
+                pass
+        # Auch ChromaDB bereinigen (nutzt eigenen max_age_days-Wert)
+        try:
+            chroma = self._get_chroma()
+            if chroma is not None:
+                chroma.cleanup_old_facts(max_age_days=max_age_days or 60)
+        except Exception:
+            pass
+        return deleted
+
     # ── Agent-Identity Persistence (Phase 2) ─────────────────────
 
     def save_agent_state(self, dialog_key: str, state: Dict[str, Any]) -> None:
         """Speichert Agent-Identität persistent in discovered_facts (als JSON)."""
         key = f"agent_state__{dialog_key}"
         value = json.dumps(state, ensure_ascii=False, indent=2)
-        self.save_fact(key, value)
+        self.save_fact(key, value, _bypass=True)  # System-intern, kein Qualitäts-Gate
 
     def load_agent_state(self, dialog_key: str) -> Dict[str, Any]:
         """Lädt Agent-Zustand aus vorherigen Sitzungen."""
@@ -337,7 +475,7 @@ class ContextManager:
             # Nur laden wenn noch nicht vorhanden
             facts = self.read_facts()
             if key not in facts:
-                self.save_fact(key, value)
+                self.save_fact(key, value, _bypass=True)
 
     def clear_session_state(self):
         """Setzt den Plan zurück. Facts (Langzeitgedächtnis) bleiben erhalten.

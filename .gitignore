@@ -10,8 +10,16 @@ data/secrets.db
 data/logs/
 data/sessions/
 data/chroma_memory/
+data/chroma_db/
+data/rag_index/
 data/workspace/
 data/task_state.db
+data/discovered_facts.db
+data/mcp_tools.db
+data/tool_store.db
+data/mcp_tools_cache.json
+data/mcp_registry_cache.json
+data/skills_state.json
 data/cron_jobs.json
 
 # Python

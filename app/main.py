@@ -63,7 +63,7 @@ from app.env_discovery import discover_environment, format_env_for_llm
 
 # Globale System-Info für den Prompt
 SYSTEM_ENV_INFO = format_env_for_llm(discover_environment())
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Body
 from fastapi.responses import FileResponse, StreamingResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -13762,12 +13762,20 @@ def _deterministic_tool_intent(message: str, cfg: Dict[str, Any]) -> str:
 
 
 def _looks_operational_request(message: str, signals: Optional[ReasoningSignals] = None) -> bool:
-    # BEST PRACTICE CLEANUP (Phase 1):
-    # Das harte Ausblenden von Tools basierend auf Verben wie "suche", "löschen" ist
-    # ein Anti-Pattern. Dem LLM werden nun Tools immer verlässlich gerankt bereitgestellt,
-    # oder das Routing greift das echte Signal auf.
     if isinstance(signals, ReasoningSignals) and bool(signals.explicit_tool_intent):
         return True
+    # Kurze Small-Talk / Begrüßungen → kein operativer Task
+    _msg_low = str(message or "").strip().lower()
+    _SMALLTALK = {
+        "hallo", "hi", "hey", "moin", "guten morgen", "guten tag", "guten abend",
+        "gute nacht", "tschüss", "tschüs", "bye", "ciao", "danke", "bitte",
+        "ok", "okay", "alles klar", "super", "gut", "prima", "toll", "perfekt",
+        "ja", "nein", "jo", "nö", "ne", "jep", "yep", "👍", "👎", "😊",
+        "wie geht es dir", "wie geht's", "was geht", "was machst du",
+        "wer bist du", "was bist du", "was kannst du",
+    }
+    if _msg_low in _SMALLTALK or len(_msg_low) <= 3:
+        return False
     return True  # Fallback: Agent entscheidet selbst organisch.
     
     action_words = [
@@ -15171,9 +15179,14 @@ def _execute_react_plan(
 
         step_results.append(step_result)
         label = f"Schritt {i+1}/{len(steps)} `{kind}`"
+        _is_internal_mem = str(kind or "").startswith("mem_")
         if ok:
-            short_reply = reply[:120].replace("\n", " ").strip()
-            _react_push_status(f"✅ {label} abgeschlossen" + (f": {short_reply}" if short_reply else ""), cfg, dialog_key)
+            if _is_internal_mem:
+                # mem_* Tools: kein Inhalt nach außen, nur kurzer Status
+                _react_push_status(f"✅ {label}", cfg, dialog_key)
+            else:
+                short_reply = reply[:120].replace("\n", " ").strip()
+                _react_push_status(f"✅ {label} abgeschlossen" + (f": {short_reply}" if short_reply else ""), cfg, dialog_key)
             reply_parts.append(f"✅ {label}: {reply[:300]}")
             if _task_planner:
                 _task_planner.update_step(i, "done")
@@ -15300,6 +15313,12 @@ def _auto_extract_facts_bg(
     if not steps or len(steps) < 2:
         return  # Zu kurzer Job, nichts Sinnvolles zu extrahieren
 
+    # Nur bei erfolgreich abgeschlossenen Jobs Fakten extrahieren
+    _ok_count = sum(1 for s in steps if s.get("ok"))
+    _fail_count = sum(1 for s in steps if not s.get("ok"))
+    if _ok_count == 0 or _fail_count > _ok_count:
+        return  # Mehrheit fehlgeschlagen — keine Fakten speichern
+
     def _worker():
         try:
             from app.llm_router import LLMRouter
@@ -15318,30 +15337,41 @@ def _auto_extract_facts_bg(
 
             existing_str = ", ".join(sorted(existing)) if existing else "keine"
 
+            # Nur relevante bestehende Keys zeigen (nicht alle 100+)
+            existing_relevant = [k for k in existing if any(
+                w in k.lower() or w in message.lower()
+                for w in k.lower().split("_")[:2]
+            )][:20]
+            existing_str = ", ".join(sorted(existing_relevant)) if existing_relevant else "keine relevanten"
+
             prompt = (
                 f"Aufgabe des Nutzers: {message[:200]}\n\n"
                 f"Ausgeführte Schritte:\n{steps_text}\n\n"
                 f"Ergebnis: {final_reply[:200]}\n\n"
-                f"Bereits gespeicherte Fakten (nicht nochmal speichern): {existing_str}\n\n"
-                "Extrahiere maximal 6 Fakten die bei ZUKÜNFTIGEN ähnlichen Aufgaben nützlich sind.\n\n"
-                "WICHTIG: Der 'value' muss ein vollständiger natürlicher Satz auf Deutsch sein — "
-                "kein key=value Format, sondern eine echte Aussage die man direkt lesen kann.\n\n"
-                "Beispiele für GUTE natürliche Sätze als value:\n"
-                "- 'arduino-cli Version 1.4.1 ist installiert unter C:\\Users\\...\\arduino-cli.exe'\n"
-                "- 'Das ESP32-Paket esp32 3.1.3 ist installiert, Board-FQBN: esp32:esp32:esp32'\n"
-                "- 'Der COM-Port des ESP32 ist COM5'\n"
-                "- 'Die Bibliothek X wird korrekt so importiert: from X import Y; y = Y(session, cfg)'\n"
-                "- 'Y(email, pwd) funktioniert NICHT — korrekter Aufruf: Y(session, cfg)'\n\n"
-                "Schlüssel (key) Konventionen — kurz und eindeutig:\n"
-                "- Installierte Tools/Pakete: pkg_NAME\n"
-                "- Pfade/Konfiguration: cfg_NAME oder tool_NAME\n"
-                "- Hardware: hw_NAME\n"
-                "- API/Bibliotheks-Nutzung: api_NAME\n"
-                "- Services/Credentials: svc_NAME\n\n"
-                "NICHT speichern: allgemeines Wissen, temporäre Daten, bereits bekannte Fakten.\n"
-                "BESONDERS WERTVOLL: Wenn Trial-and-Error nötig war um die richtige API-Nutzung zu finden.\n"
-                "Wenn nichts Neues: leere Liste.\n"
-                'Antworte NUR als JSON: {"facts": [{"key": "...", "value": "vollständiger natürlicher Satz..."}]}'
+                f"Bereits gespeicherte relevante Fakten (NICHT nochmal speichern): {existing_str}\n\n"
+                "Entscheide für jeden potentiellen Fakt: Würde ein zukünftiger Job OHNE diesen Fakt\n"
+                "dieselbe Entdeckungsarbeit nochmal machen müssen?\n"
+                "JA → speichern. NEIN oder UNSICHER → nicht speichern.\n\n"
+                "SPEICHERN wenn:\n"
+                "- Spezifische IP, ID, Username, Token, Pfad der herausgefunden wurde\n"
+                "- API-Aufruf-Syntax die durch Trial-and-Error ermittelt wurde (nicht aus Docs ableitbar)\n"
+                "- Nicht-offensichtliche Konfiguration die ohne diesen Fakt neu gesucht werden müsste\n\n"
+                "NICHT speichern:\n"
+                "- Allgemeines Wissen über bekannte Bibliotheken (requests, json, os...)\n"
+                "- Standard-Ports (80, 443), allgemeine Protokolle (HTTP, HTTPS)\n"
+                "- Temporäre Zustände (aktueller Licht-Status, ob ein Button gedrückt wurde)\n"
+                "- Hardware-Modellnummern, Firmware-Versionen, serielle Nummern\n"
+                "- Dinge die aus dem Code oder der Dokumentation direkt erkennbar sind\n"
+                "- Facts die bereits existieren\n\n"
+                "Im Zweifel: leere Liste. Qualität vor Quantität.\n\n"
+                "Der 'value' muss ein vollständiger Satz sein der direkt verwendbar ist.\n\n"
+                "Jeder Fakt MUSS einen 'type' haben:\n"
+                "  device     = IP-Adresse, COM-Port, Geräte-ID\n"
+                "  credential = API-Key, Token, Username, Password-Alias\n"
+                "  path       = absoluter Dateipfad, Tool-Pfad\n"
+                "  api_quirk  = unerwartetes API-Verhalten das durch Trial-and-Error entdeckt wurde\n"
+                "  config     = Nutzer-Einstellung oder Präferenz\n\n"
+                'Antworte NUR als JSON: {"facts": [{"key": "...", "value": "...", "type": "device|credential|path|api_quirk|config"}]}'
             )
 
             router = LLMRouter(cfg)
@@ -15353,10 +15383,11 @@ def _auto_extract_facts_bg(
                         "items": {
                             "type": "object",
                             "properties": {
-                                "key": {"type": "string"},
+                                "key":   {"type": "string"},
                                 "value": {"type": "string"},
+                                "type":  {"type": "string", "enum": ["device", "credential", "path", "api_quirk", "config"]},
                             },
-                            "required": ["key", "value"],
+                            "required": ["key", "value", "type"],
                         },
                     }
                 },
@@ -15369,8 +15400,9 @@ def _auto_extract_facts_bg(
             for fact in result.get("facts", []):
                 k = str(fact.get("key", "")).strip()
                 v = str(fact.get("value", "")).strip()
+                t = str(fact.get("type", "unknown")).strip()
                 if k and v and len(k) < 80 and len(v) < 400 and k not in existing:
-                    ctx_mgr.save_fact(k, v)
+                    ctx_mgr.save_fact(k, v, fact_type=t)
                     saved += 1
             if saved:
                 tool_store.log("auto_fact_extract", f"{saved} Fakten automatisch gespeichert.")
@@ -15439,6 +15471,21 @@ def _summarize_and_update_session(
         _auto_extract_facts_bg(cfg, message, steps, final_reply, ctx_mgr, mem_save_called)
 
 
+# ── PARALLEL TOOL EXECUTION HELPERS ──────────────────────────────────────────
+# Tools die keine Seiteneffekte haben und idempotent sind → parallel ausführbar.
+# Alles andere (fs_write_*, sys_*, web_download, git_*, mem_save_*, terminal_*) → serial.
+_PARALLEL_SAFE_PREFIXES: tuple = (
+    "web_search", "brave_web_search",
+    "web_fetch_smart", "web_fetch_js", "web_fetch_raw",
+    "fs_read_file", "fs_list_dir", "fs_search_codebase",
+    "fs_index_workspace",
+    "mem_get_facts", "mem_get_secret",
+)
+
+def _is_parallel_safe(tool_kind: str) -> bool:
+    """Gibt True zurück wenn das Tool ohne Seiteneffekte parallel ausgeführt werden darf."""
+    k = str(tool_kind or "").strip()
+    return any(k == p or k.startswith(p) for p in _PARALLEL_SAFE_PREFIXES)
 
 
 def _execute_react_loop(
@@ -15472,6 +15519,18 @@ def _execute_react_loop(
     # Phase 3: System-Knowledge einmalig laden (nur wenn noch nicht vorhanden)
     try:
         ctx_mgr.load_system_knowledge()
+    except Exception:
+        pass
+    # Einmalig pro Tag: veraltete Facts bereinigen (>90 Tage, keine Credentials/IPs)
+    try:
+        import time as _time_mod
+        _cleanup_marker = ctx_mgr.get_fact("_last_facts_cleanup") or ""
+        _today_str = _time_mod.strftime("%Y-%m-%d")
+        if _cleanup_marker != _today_str:
+            _n_deleted = ctx_mgr.cleanup_old_facts(max_age_days=90)
+            ctx_mgr.save_fact("_last_facts_cleanup", _today_str, _bypass=True)
+            if _n_deleted > 0:
+                _audit_event("facts_cleanup_auto", {"deleted": _n_deleted})
     except Exception:
         pass
     # Trace-spezifische plan.md — verhindert Überschreiben durch parallele Runs auf dieselbe Anfrage
@@ -15850,9 +15909,26 @@ def _execute_react_loop(
             try:
                 # ── LLM AUFRUF ──────────────────────────────────────────────────
                 if _use_native_tools and _active_tools:
-                    # NATIVER Tool-Calling-Modus
-                    _reply_text, _tool_calls, _stop_reason = router.chat_messages_with_tools(
-                        history, _active_tools
+                    # NATIVER Tool-Calling-Modus (mit Streaming für Text-Tokens)
+                    # Streaming-Thoughts nur an WebUI/CLI — bei Telegram/Discord würde jedes
+                    # Emit eine neue Nachricht erzeugen → Nachrichtenflut. Dort kein Streaming.
+                    _is_messenger_channel = dialog_key.startswith("telegram:") or dialog_key.startswith("discord:")
+                    _stream_buf: List[str] = []
+                    _stream_emit_at = [0]
+
+                    def _on_stream_chunk(chunk: str) -> None:
+                        if _is_messenger_channel:
+                            return  # Telegram/Discord: kein Live-Streaming, nur Endergebnis
+                        _stream_buf.append(chunk)
+                        _joined = "".join(_stream_buf)
+                        # Anti-Flicker: nur emitieren wenn mind. 15 neue Zeichen akkumuliert
+                        if len(_joined) - _stream_emit_at[0] >= 15:
+                            _react_push_status(f"💭 {_joined[-150:]}", cfg, dialog_key, is_thought=True)
+                            _stream_emit_at[0] = len(_joined)
+
+                    _reply_text, _tool_calls, _stop_reason = router.stream_chat_with_tools(
+                        history, _active_tools,
+                        on_text_chunk=_on_stream_chunk,
                     )
                     _llm_consecutive_errors = 0
 
@@ -15937,9 +16013,22 @@ def _execute_react_loop(
                             "ich fahre nun fort", "ich fahre jetzt fort",
                             "ich beginne nun", "ich beginne jetzt",
                             "i will now", "i will next",
+                            # Warte-Muster: Bot wartet auf Bestätigung die bereits vorliegt
+                            "ich warte auf deine", "ich warte auf eine bestätigung",
+                            "lass mich wissen, sobald", "sobald du den knopf",
+                            "sobald du es getan", "bitte bestätige, sobald",
+                            "bitte drücke", "bitte drück",
                         )
                         _reply_tail = (_reply_text or "")[-600:].lower()
                         _is_announcement = any(t in _reply_tail for t in _ANNOUNCE_TRIGGERS)
+                        # Extra-Check: Nur mem_update_plan gelaufen, aber kein echter Operationsschritt
+                        _only_bookkeeping = (
+                            all_steps_log
+                            and all(s.get("kind", "") in ("mem_update_plan", "mem_read_plan", "mem_list_plans") for s in all_steps_log if s.get("ok"))
+                            and not _is_announcement
+                        )
+                        if _only_bookkeeping:
+                            _is_announcement = True
                         if (
                             not _announce_guard_fired
                             and _is_announcement
@@ -15957,27 +16046,6 @@ def _execute_react_loop(
                             )})
                             continue
 
-                        # Kein Tool-Call = LLM ist fertig — aber zuerst Fakten-Reminder prüfen
-                        # Wenn echte Tool-Calls gemacht wurden (kein reiner Chat) aber kein mem_save_fact:
-                        # Eine letzte Pflicht-Iteration für Fakt-Speicherung einlegen
-                        if (
-                            not _mem_save_called
-                            and not _mem_save_reminder_sent
-                            and _real_action_count >= 2
-                            and intent not in {"answer_and_save", "clarification"}
-                        ):
-                            _mem_save_reminder_sent = True
-                            _pre_reminder_reply = _reply_text or "Abgeschlossen."
-                            history.append({"role": "assistant", "content": _pre_reminder_reply})
-                            history.append({"role": "user", "content": (
-                                "[SYSTEM] Bevor du abschließt: Hast du relevante Fakten für zukünftige Jobs gespeichert? "
-                                "Speichere JETZT mit mem_save_fact alle Informationen die beim nächsten Job direkt "
-                                "nützlich sind: entdeckte Tool-Pfade (vollständig absolut!), Hardware-Konfiguration "
-                                "(COM-Port, IP), erstellte Projekte und deren Pfade. "
-                                "Falls nichts Speichernswertes vorhanden ist, antworte direkt ohne Tool-Call."
-                            )})
-                            continue  # Eine weitere Iteration für Fakten-Speicherung
-                        
                         # QUALITY GATE: Test-Enforcement
                         if (
                             _code_modified_in_job 
@@ -15998,25 +16066,7 @@ def _execute_react_loop(
                             continue
 
                         # Kein Tool-Call = LLM ist fertig
-                        # Nach Reminder: eigentliche Aufgaben-Antwort verwenden — aber nur wenn
-                        # sie nicht trivial ist. Wenn _pre_reminder_reply leer/"Abgeschlossen." war
-                        # (LLM hatte keine Antwort vor dem Reminder), nutze stattdessen _reply_text.
-                        _TRIVIAL_FR_LOCAL = {"abgeschlossen.", "abgeschlossen", "erledigt.", "erledigt", "done.", "done", ""}
-                        _pre_is_real = (
-                            _mem_save_reminder_sent
-                            and _pre_reminder_reply
-                            and _pre_reminder_reply.strip().lower() not in _TRIVIAL_FR_LOCAL
-                        )
-                        if _pre_is_real:
-                            # Echte Aufgaben-Antwort vor dem Reminder → verwenden
-                            final_reply = _pre_reminder_reply
-                        elif _mem_save_reminder_sent:
-                            # _reply_text ist jetzt die Antwort auf den Fakten-Reminder
-                            # ("Es gibt keine relevanten Fakten...") — NIE als User-Antwort senden.
-                            # _pre_reminder_reply war trivial → nehme es trotzdem (ehrlicher als Reminder-Text).
-                            final_reply = _pre_reminder_reply or "Abgeschlossen."
-                        else:
-                            final_reply = _reply_text or "Abgeschlossen."
+                        final_reply = _reply_text or "Abgeschlossen."
                         # LAST-RESORT GUARD: Wenn finale Antwort immer noch trivial ist obwohl
                         # echte Tool-Calls liefen → Benutzer zumindest über die gefundenen Daten informieren.
                         _TRIVIAL_FR_CHECK = {"abgeschlossen.", "abgeschlossen", "erledigt.", "erledigt", "done.", "done", ""}
@@ -16045,21 +16095,85 @@ def _execute_react_loop(
                         _summarize_and_update_session(cfg, message, all_steps_log, final_reply, ctx_mgr=ctx_mgr, mem_save_called=_mem_save_called)
                         return {"ok": True, "reply": final_reply, "steps": all_steps_log}
 
-                    # Tool-Calls vorhanden: ersten nehmen, Rest ignorieren für jetzt
-                    action = {k: v for k, v in _tool_calls[0].items() if k != "_tool_id"}
-                    kind = str(action.get("kind", "")).strip()
-                    done = False
-                    reasoning = ""
+                    # ── PARALLEL TOOL DISPATCH ───────────────────────────────────────────────
+                    # Alle parallel-safe Tools am Anfang der Liste als Batch ausführen.
+                    # Serial-only Tools (fs_write_*, sys_*, web_download …): nur den ersten.
+                    _batch: List[Dict[str, Any]] = []
+                    _found_serial = False
+                    for _tc in _tool_calls:
+                        _tc_kind = str(_tc.get("kind", "")).strip()
+                        if not _found_serial and _is_parallel_safe(_tc_kind):
+                            _batch.append(_tc)
+                        else:
+                            _found_serial = True
+                            break  # Nur den parallelen Präfix nehmen
+
+                    # Wenn der erste Tool-Call NICHT parallel-safe ist → nur diesen ausführen
+                    if not _batch:
+                        _batch = [_tool_calls[0]]
 
                     # Assistent-Turn mit Tool-Calls in History speichern.
-                    # WICHTIG: Nur den ersten Tool-Call speichern – Anthropic/OpenAI verlangen
-                    # für jeden tool_use-Block exakt einen tool_result. Da wir nur _tool_calls[0]
-                    # ausführen, darf auch nur dieser in der History stehen.
+                    # Anthropic/OpenAI verlangen für jeden tool_use-Block exakt einen tool_result.
                     history.append({
                         "role": "assistant",
                         "content": _reply_text or "",
-                        "_tool_calls": [_tool_calls[0]],
+                        "_tool_calls": _batch,
                     })
+
+                    if len(_batch) == 1:
+                        # Einzelner Tool-Call → weiter wie bisher (kein Thread-Overhead)
+                        action = {k: v for k, v in _batch[0].items() if k != "_tool_id"}
+                        kind = str(action.get("kind", "")).strip()
+                        done = False
+                        reasoning = ""
+                    else:
+                        # ── BATCH-AUSFÜHRUNG: parallel-safe Tools gleichzeitig ────────────────
+                        from concurrent.futures import ThreadPoolExecutor as _TPE
+                        import threading as _thr
+                        _batch_results: Dict[int, Dict[str, Any]] = {}
+                        _batch_lock = _thr.Lock()
+
+                        def _exec_parallel(idx_tc: tuple) -> None:
+                            _idx, _tc = idx_tc
+                            _act = {k: v for k, v in _tc.items() if k != "_tool_id"}
+                            _k = str(_act.get("kind", "")).strip()
+                            _react_push_status(f"🔀 Parallel {_idx+1}/{len(_batch)}: {_k}", cfg, dialog_key)
+                            try:
+                                _r = _run_action_with_policy(cfg, message, _act, str(iteration), "react_loop", False, dialog_key)
+                            except Exception as _pe:
+                                _r = {"ok": False, "reply": f"Fehler: {_pe}"}
+                            with _batch_lock:
+                                _batch_results[_idx] = {**_r, "kind": _k}
+
+                        with _TPE(max_workers=min(len(_batch), 4)) as _pool:
+                            list(_pool.map(_exec_parallel, enumerate(_batch)))
+
+                        # Ergebnisse in Reihenfolge verarbeiten
+                        for _bidx in range(len(_batch)):
+                            _br = _batch_results.get(_bidx, {"ok": False, "reply": "Kein Ergebnis", "kind": "?"})
+                            _b_ok = bool(_br.get("ok", False))
+                            _b_kind = str(_br.get("kind", ""))
+                            _b_text = str(_br.get("reply", ""))
+                            all_steps_log.append({
+                                "iteration": iteration,
+                                "kind": _b_kind,
+                                "params": {k: v for k, v in _batch[_bidx].items() if k not in ("kind", "_tool_id")},
+                                "ok": _b_ok,
+                                "reply": _b_text[:300],
+                            })
+                            _react_push_status(
+                                f"{'✅' if _b_ok else '❌'} {_b_kind}",
+                                cfg, dialog_key,
+                            )
+                            # Tool-Result als role="tool" in History (Anthropic/OpenAI verstehen das)
+                            history.append({
+                                "role": "tool",
+                                "_tool_id": str(_batch[_bidx].get("_tool_id", "") or _b_kind),
+                                "content": _b_text[:2000],
+                            })
+                        iteration += 1
+                        _total_loops += 1
+                        continue  # → direkt zur nächsten LLM-Iteration
 
                 else:
                     # LEGACY JSON-MODUS (Fallback)
@@ -16155,7 +16269,27 @@ def _execute_react_loop(
                 
                 try:
                     if kind == "mem_update_plan":
-                        res_text = ctx_mgr.update_plan(action.get("content", ""))
+                        plan_content = action.get("content", "")
+                        # Guard: Wenn der letzte echte Schritt fehlgeschlagen ist, Warnung in Plan injizieren.
+                        # Verhindert dass das LLM falsche Schlüsse aus fehlgeschlagenen Scripts als
+                        # "verifizierte Diagnose" in den Plan schreibt.
+                        _last_real_step = next(
+                            (s for s in reversed(all_steps_log)
+                             if s.get("kind", "") not in ("mem_update_plan", "mem_save_fact", "mem_get_facts",
+                                                           "mem_delete_fact", "mem_get_secret", "mem_save_secret")),
+                            None
+                        )
+                        if _last_real_step and not _last_real_step.get("ok", True):
+                            _failed_kind = _last_real_step.get("kind", "?")
+                            _failed_reply = str(_last_real_step.get("reply", ""))[:200]
+                            plan_content += (
+                                f"\n\n[SYSTEM-HINWEIS] Der letzte Schritt '{_failed_kind}' ist FEHLGESCHLAGEN "
+                                f"(exit!=0 oder Exception). Schlüsse daraus sind UNVERIFIZIERT. "
+                                f"Fehlerausgabe: {_failed_reply} "
+                                f"Stelle sicher dass deine Diagnose auf dem tatsächlichen Output basiert, "
+                                f"nicht auf Annahmen."
+                            )
+                        res_text = ctx_mgr.update_plan(plan_content)
                         ok = "ERROR" not in res_text
                         _consecutive_local_only += 1
                         # mem_update_plan zählt NICHT gegen das Iterations-Limit (_total_loops übernimmt Failsafe)
@@ -16169,7 +16303,11 @@ def _execute_react_loop(
                             )
                     elif kind in {"mem_save_fact", "mem_get_facts", "mem_delete_fact", "mem_get_secret", "mem_save_secret"}:
                         if kind == "mem_save_fact":
-                            res_text = ctx_mgr.save_fact(action.get("key", ""), action.get("fact", ""))
+                            res_text = ctx_mgr.save_fact(
+                                action.get("key", ""),
+                                action.get("fact", ""),
+                                fact_type=action.get("type", "unknown"),
+                            )
                             _mem_save_called = True
                         elif kind == "mem_delete_fact":
                             res_text = ctx_mgr.delete_fact(action.get("key", ""))
@@ -16559,7 +16697,11 @@ def _execute_react_loop(
 
                 status_symbol = "\u2705" if ok else "\u274C"
                 # WICHTIG: Beobachtung/Ergebnis als NEUE Nachricht senden (ist_thought=False = Standard)
-                obs_message = f"{status_symbol} {res_text[:120]}"
+                # mem_* Tools: kein interner Inhalt nach außen (PINNED CONTEXT etc. bleibt intern)
+                if str(kind or "").startswith("mem_"):
+                    obs_message = f"{status_symbol} {kind}"
+                else:
+                    obs_message = f"{status_symbol} {res_text[:120]}"
                 _react_push_status(obs_message, cfg, dialog_key)  # is_thought=False (default)
                 _cli_live_emit("observation", {"reply": res_text})
 
@@ -22574,8 +22716,7 @@ class AddModelRequest(BaseModel):
 @app.post("/api/config/provider/add")
 def add_llm_provider(req: AddProviderRequest) -> Dict[str, Any]:
     cfg = _cfg()
-    llm_cfg = cfg.setdefault("llm", {})
-    providers = llm_cfg.setdefault("providers", {})
+    providers = cfg.setdefault("providers", {})
     
     if req.token and req.token_key:
         store = _secret_store(cfg)
@@ -22594,7 +22735,7 @@ def add_llm_provider(req: AddProviderRequest) -> Dict[str, Any]:
 @app.delete("/api/config/provider/{provider_id}")
 def delete_llm_provider(provider_id: str) -> Dict[str, Any]:
     cfg = _cfg()
-    providers = cfg.get("llm", {}).get("providers", {})
+    providers = cfg.get("providers", {})
     if provider_id in providers:
         name = providers[provider_id].get("name", provider_id)
         del providers[provider_id]
@@ -22605,7 +22746,7 @@ def delete_llm_provider(provider_id: str) -> Dict[str, Any]:
 @app.post("/api/config/model/add")
 def add_llm_model(req: AddModelRequest) -> Dict[str, Any]:
     cfg = _cfg()
-    providers = cfg.get("llm", {}).get("providers", {})
+    providers = cfg.get("providers", {})
     if req.provider_id not in providers:
         raise HTTPException(status_code=404, detail="Provider nicht gefunden.")
     p = providers[req.provider_id]
@@ -22618,7 +22759,7 @@ def add_llm_model(req: AddModelRequest) -> Dict[str, Any]:
 @app.delete("/api/config/provider/{provider_id}/model/{model_name}")
 def delete_llm_model(provider_id: str, model_name: str) -> Dict[str, Any]:
     cfg = _cfg()
-    providers = cfg.get("llm", {}).get("providers", {})
+    providers = cfg.get("providers", {})
     if provider_id in providers:
         p = providers[provider_id]
         models = p.get("models", [])
@@ -22717,6 +22858,23 @@ def set_provider_config(payload: ProviderConfigRequest) -> Dict[str, Any]:
         "enabled": bool(provider_cfg.get("enabled", True)),
         "base_url": str(provider_cfg.get("base_url", "") or ""),
     }
+
+@app.post("/api/config/provider/{provider_id}/apikey")
+def set_provider_apikey(provider_id: str, payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+    cfg = _cfg()
+    pid = str(provider_id or "").strip()
+    if not pid:
+        raise HTTPException(status_code=400, detail="provider_id fehlt")
+    providers = cfg.setdefault("providers", {})
+    if pid not in providers or not isinstance(providers[pid], dict):
+        raise HTTPException(status_code=404, detail=f"Provider '{pid}' nicht gefunden")
+    api_key = str(payload.get("api_key", "") or "").strip()
+    if not api_key:
+        raise HTTPException(status_code=400, detail="api_key darf nicht leer sein")
+    providers[pid]["api_key"] = api_key
+    save_config(cfg)
+    tool_store.log("config", f"API-Key aktualisiert: {pid}")
+    return {"ok": True, "provider_id": pid, "api_key_set": True}
 
 @app.post("/api/config/security")
 def set_security(payload: SecurityConfigRequest) -> Dict[str, Any]:
